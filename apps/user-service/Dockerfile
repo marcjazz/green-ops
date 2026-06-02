@@ -7,6 +7,7 @@ COPY apps/user-service ./apps/user-service
 RUN pnpm install --frozen-lockfile
 RUN cd apps/user-service && npx prisma generate
 RUN pnpm --filter user-service run build
+ENV CI=true
 RUN pnpm install --prod --frozen-lockfile
 
 FROM node:20-slim

@@ -7,6 +7,7 @@ COPY apps/alerts-service ./apps/alerts-service
 RUN pnpm install --frozen-lockfile
 RUN cd apps/alerts-service && npx prisma generate
 RUN pnpm --filter alerts-service run build
+ENV CI=true
 RUN pnpm install --prod --frozen-lockfile
 
 FROM node:20-slim
