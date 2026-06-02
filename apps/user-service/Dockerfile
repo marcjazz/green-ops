@@ -22,7 +22,8 @@ COPY packages/shared/package.json ./packages/shared/package.json
 COPY apps/user-service/package.json ./apps/user-service/package.json
 
 # Install prod deps and link local packages
-RUN pnpm install --prod --frozen-lockfile --filter user-service
+COPY packages/shared ./packages/shared
+RUN pnpm install --prod --frozen-lockfile --filter user-service --filter shared
 
 # Copy built artifacts
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
