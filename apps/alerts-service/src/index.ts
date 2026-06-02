@@ -6,6 +6,7 @@ import helmet from "helmet";
 import { CreateAlertSchema } from "shared";
 
 const prisma = new PrismaClient();
+const app = express();
 const port = process.env.PORT || 3001;
 
 app.use(helmet());
