@@ -42,6 +42,21 @@ To start the entire stack (including Keycloak, Prometheus, and Grafana):
 cd infrastructure/docker
 docker compose up -d --build
 ```
+
+## Accessing the Platform
+Add the following to your `/etc/hosts` file (or equivalent):
+```text
+127.0.0.1 local
+127.0.0.1 keycloak.local
+127.0.0.1 prometheus.local
+127.0.0.1 grafana.local
+```
+
+Once configured, access the services via:
+- **Frontend**: `http://local`
+- **Keycloak**: `http://keycloak.local`
+- **Prometheus**: `http://prometheus.local`
+- **Grafana**: `http://grafana.local`
 ```
 
 ### Kubernetes
