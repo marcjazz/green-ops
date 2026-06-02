@@ -8,7 +8,9 @@ import { CreateAlertSchema } from "shared";
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+	datasourceUrl: process.env.DATABASE_URL,
+});
 const port = process.env.PORT || 3001;
 
 app.use(helmet());
