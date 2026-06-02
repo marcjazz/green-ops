@@ -97,7 +97,9 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   id: 'id',
   keycloakId: 'keycloakId',
   email: 'email',
-  preferences: 'preferences',
+  theme: 'theme',
+  notifications: 'notifications',
+  dashboardLayout: 'dashboardLayout',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -107,7 +109,8 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
-exports.Prisma.JsonNullValueInput = {
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
@@ -122,6 +125,14 @@ exports.Prisma.JsonNullValueFilter = {
   AnyNull: Prisma.AnyNull
 };
 
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+exports.Theme = exports.$Enums.Theme = {
+  light: 'light',
+  dark: 'dark'
+};
 
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile'
@@ -134,14 +145,14 @@ const config = {
   "clientVersion": "7.8.0",
   "engineVersion": "3c6e192761c0362d496ed980de936e2f3cebcd3a",
   "activeProvider": "postgresql",
-  "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nmodel UserProfile {\n  id          String   @id @default(uuid())\n  keycloakId  String   @unique\n  email       String   @unique\n  preferences Json     @default(\"{\\\"theme\\\": \\\"light\\\", \\\"notifications\\\": true}\")\n  createdAt   DateTime @default(now())\n  updatedAt   DateTime @updatedAt\n}\n"
+  "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nenum Theme {\n  light\n  dark\n}\n\nmodel UserProfile {\n  id              String   @id @default(uuid())\n  keycloakId      String   @unique\n  email           String   @unique\n  theme           Theme    @default(light)\n  notifications   Boolean  @default(true)\n  dashboardLayout Json?\n  createdAt       DateTime @default(now())\n  updatedAt       DateTime @updatedAt\n}\n"
 }
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"UserProfile\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"keycloakId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"preferences\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"UserProfile\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"keycloakId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"theme\",\"kind\":\"enum\",\"type\":\"Theme\"},{\"name\":\"notifications\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"dashboardLayout\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
 config.parameterizationSchema = {
-  strings: JSON.parse("[\"where\",\"UserProfile.findUnique\",\"UserProfile.findUniqueOrThrow\",\"orderBy\",\"cursor\",\"UserProfile.findFirst\",\"UserProfile.findFirstOrThrow\",\"UserProfile.findMany\",\"data\",\"UserProfile.createOne\",\"UserProfile.createMany\",\"UserProfile.createManyAndReturn\",\"UserProfile.updateOne\",\"UserProfile.updateMany\",\"UserProfile.updateManyAndReturn\",\"create\",\"update\",\"UserProfile.upsertOne\",\"UserProfile.deleteOne\",\"UserProfile.deleteMany\",\"having\",\"_count\",\"_min\",\"_max\",\"UserProfile.groupBy\",\"UserProfile.aggregate\",\"AND\",\"OR\",\"NOT\",\"id\",\"keycloakId\",\"email\",\"preferences\",\"createdAt\",\"updatedAt\",\"equals\",\"in\",\"notIn\",\"lt\",\"lte\",\"gt\",\"gte\",\"not\",\"string_contains\",\"string_starts_with\",\"string_ends_with\",\"array_starts_with\",\"array_ends_with\",\"array_contains\",\"contains\",\"startsWith\",\"endsWith\",\"set\"]"),
-  graph: "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"
+  strings: JSON.parse("[\"where\",\"UserProfile.findUnique\",\"UserProfile.findUniqueOrThrow\",\"orderBy\",\"cursor\",\"UserProfile.findFirst\",\"UserProfile.findFirstOrThrow\",\"UserProfile.findMany\",\"data\",\"UserProfile.createOne\",\"UserProfile.createMany\",\"UserProfile.createManyAndReturn\",\"UserProfile.updateOne\",\"UserProfile.updateMany\",\"UserProfile.updateManyAndReturn\",\"create\",\"update\",\"UserProfile.upsertOne\",\"UserProfile.deleteOne\",\"UserProfile.deleteMany\",\"having\",\"_count\",\"_min\",\"_max\",\"UserProfile.groupBy\",\"UserProfile.aggregate\",\"AND\",\"OR\",\"NOT\",\"id\",\"keycloakId\",\"email\",\"Theme\",\"theme\",\"notifications\",\"dashboardLayout\",\"createdAt\",\"updatedAt\",\"equals\",\"in\",\"notIn\",\"lt\",\"lte\",\"gt\",\"gte\",\"not\",\"string_contains\",\"string_starts_with\",\"string_ends_with\",\"array_starts_with\",\"array_ends_with\",\"array_contains\",\"contains\",\"startsWith\",\"endsWith\",\"set\"]"),
+  graph: "OAkQCxoAACsAMBsAAAQAEBwAACsAMB0BAAAAAR4BAAAAAR8BAAAAASEAAC0hIiIgAC4AISMAAC8AICRAADAAISVAADAAIQEAAAABACABAAAAAQAgCxoAACsAMBsAAAQAEBwAACsAMB0BACwAIR4BACwAIR8BACwAISEAAC0hIiIgAC4AISMAAC8AICRAADAAISVAADAAIQEjAAAxACADAAAABAAgAwAABQAwBAAAAQAgAwAAAAQAIAMAAAUAMAQAAAEAIAMAAAAEACADAAAFADAEAAABACAIHQEAAAABHgEAAAABHwEAAAABIQAAACECIiAAAAABI4AAAAABJEAAAAABJUAAAAABAQgAAAkAIAgdAQAAAAEeAQAAAAEfAQAAAAEhAAAAIQIiIAAAAAEjgAAAAAEkQAAAAAElQAAAAAEBCAAACwAwAQgAAAsAMAgdAQA1ACEeAQA1ACEfAQA1ACEhAAA2ISIiIAA3ACEjgAAAAAEkQAA4ACElQAA4ACECAAAAAQAgCAAADgAgCB0BADUAIR4BADUAIR8BADUAISEAADYhIiIgADcAISOAAAAAASRAADgAISVAADgAIQIAAAAEACAIAAAQACACAAAABAAgCAAAEAAgAwAAAAEAIA8AAAkAIBAAAA4AIAEAAAABACABAAAABAAgBBUAADIAIBYAADQAIBcAADMAICMAADEAIAsaAAAaADAbAAAXABAcAAAaADAdAQAbACEeAQAbACEfAQAbACEhAAAcISIiIAAdACEjAAAeACAkQAAfACElQAAfACEDAAAABAAgAwAAFgAwFAAAFwAgAwAAAAQAIAMAAAUAMAQAAAEAIAsaAAAaADAbAAAXABAcAAAaADAdAQAbACEeAQAbACEfAQAbACEhAAAcISIiIAAdACEjAAAeACAkQAAfACElQAAfACEOFQAAIQAgFgAAKgAgFwAAKgAgJgEAAAABJwEAAAAEKAEAAAAEKQEAAAABKgEAAAABKwEAAAABLAEAAAABLQEAKQAhNAEAAAABNQEAAAABNgEAAAABBxUAACEAIBYAACgAIBcAACgAICYAAAAhAicAAAAhCCgAAAAhCC0AACchIgUVAAAhACAWAAAmACAXAAAmACAmIAAAAAEtIAAlACEPFQAAIwAgFgAAJAAgFwAAJAAgJoAAAAABKYAAAAABKoAAAAABK4AAAAABLIAAAAABLYAAAAABLgEAAAABLwEAAAABMAEAAAABMYAAAAABMoAAAAABM4AAAAABCxUAACEAIBYAACIAIBcAACIAICZAAAAAASdAAAAABChAAAAABClAAAAAASpAAAAAAStAAAAAASxAAAAAAS1AACAAIQsVAAAhACAWAAAiACAXAAAiACAmQAAAAAEnQAAAAAQoQAAAAAQpQAAAAAEqQAAAAAErQAAAAAEsQAAAAAEtQAAgACEIJgIAAAABJwIAAAAEKAIAAAAEKQIAAAABKgIAAAABKwIAAAABLAIAAAABLQIAIQAhCCZAAAAAASdAAAAABChAAAAABClAAAAAASpAAAAAAStAAAAAASxAAAAAAS1AACIAIQgmAgAAAAEnAgAAAAUoAgAAAAUpAgAAAAEqAgAAAAErAgAAAAEsAgAAAAEtAgAjACEMJoAAAAABKYAAAAABKoAAAAABK4AAAAABLIAAAAABLYAAAAABLgEAAAABLwEAAAABMAEAAAABMYAAAAABMoAAAAABM4AAAAABBRUAACEAIBYAACYAIBcAACYAICYgAAAAAS0gACUAIQImIAAAAAEtIAAmACEHFQAAIQAgFgAAKAAgFwAAKAAgJgAAACECJwAAACEIKAAAACEILQAAJyEiBCYAAAAhAicAAAAhCCgAAAAhCC0AACghIg4VAAAhACAWAAAqACAXAAAqACAmAQAAAAEnAQAAAAQoAQAAAAQpAQAAAAEqAQAAAAErAQAAAAEsAQAAAAEtAQApACE0AQAAAAE1AQAAAAE2AQAAAAELJgEAAAABJwEAAAAEKAEAAAAEKQEAAAABKgEAAAABKwEAAAABLAEAAAABLQEAKgAhNAEAAAABNQEAAAABNgEAAAABCxoAACsAMBsAAAQAEBwAACsAMB0BACwAIR4BACwAIR8BACwAISEAAC0hIiIgAC4AISMAAC8AICRAADAAISVAADAAIQsmAQAAAAEnAQAAAAQoAQAAAAQpAQAAAAEqAQAAAAErAQAAAAEsAQAAAAEtAQAqACE0AQAAAAE1AQAAAAE2AQAAAAEEJgAAACECJwAAACEIKAAAACEILQAAKCEiAiYgAAAAAS0gACYAIQwmgAAAAAEpgAAAAAEqgAAAAAErgAAAAAEsgAAAAAEtgAAAAAEuAQAAAAEvAQAAAAEwAQAAAAExgAAAAAEygAAAAAEzgAAAAAEIJkAAAAABJ0AAAAAEKEAAAAAEKUAAAAABKkAAAAABK0AAAAABLEAAAAABLUAAIgAhAAAAAAE3AQAAAAEBNwAAACECATcgAAAAAQE3QAAAAAEAAAAAAxUABhYABxcACAAAAAMVAAYWAAcXAAgBAgECAwEFBgEGBwEHCAEJCgEKDAILDQMMDwENEQIOEgQREwESFAETFQIYGAUZGQk"
 }
 config.compilerWasm = {
       getRuntime: async () => require('./query_compiler_fast_bg.js'),

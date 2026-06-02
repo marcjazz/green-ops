@@ -1,9 +1,9 @@
-import { PrismaClient } from "./generated/prisma/index.js";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import helmet from "helmet";
 import { UpdateUserProfileSchema } from "shared";
+import { PrismaClient } from "./generated/prisma/index.js";
 
 dotenv.config();
 
@@ -67,9 +67,7 @@ app.patch("/profile", async (req, res) => {
 		const validated = UpdateUserProfileSchema.parse(req.body);
 		const profile = await prisma.userProfile.update({
 			where: { keycloakId },
-			data: {
-				preferences: (validated.preferences ?? undefined) as any,
-			},
+			data: validated,
 		});
 		res.json({ success: true, data: profile });
 	} catch (_error) {

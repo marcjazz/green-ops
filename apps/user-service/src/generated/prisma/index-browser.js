@@ -124,7 +124,9 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   id: 'id',
   keycloakId: 'keycloakId',
   email: 'email',
-  preferences: 'preferences',
+  theme: 'theme',
+  notifications: 'notifications',
+  dashboardLayout: 'dashboardLayout',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -134,7 +136,8 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
-exports.Prisma.JsonNullValueInput = {
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
@@ -149,6 +152,14 @@ exports.Prisma.JsonNullValueFilter = {
   AnyNull: Prisma.AnyNull
 };
 
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+exports.Theme = exports.$Enums.Theme = {
+  light: 'light',
+  dark: 'dark'
+};
 
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile'

@@ -7,11 +7,18 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Theme {
+  light
+  dark
+}
+
 model UserProfile {
-  id          String   @id @default(uuid())
-  keycloakId  String   @unique
-  email       String   @unique
-  preferences Json     @default("{\"theme\": \"light\", \"notifications\": true}")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(uuid())
+  keycloakId      String   @unique
+  email           String   @unique
+  theme           Theme    @default(light)
+  notifications   Boolean  @default(true)
+  dashboardLayout Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

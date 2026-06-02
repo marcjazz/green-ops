@@ -5,11 +5,9 @@ export const UserProfileSchema = z.object({
 	id: z.string().uuid(),
 	keycloakId: z.string(),
 	email: z.string().email(),
-	preferences: z.object({
-		theme: z.enum(["light", "dark"]).default("light"),
-		notifications: z.boolean().default(true),
-		dashboardLayout: z.any().optional(),
-	}),
+	theme: z.enum(["light", "dark"]).default("light"),
+	notifications: z.boolean().default(true),
+	dashboardLayout: z.any().optional(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
 });
@@ -19,6 +17,7 @@ export type UserProfile = z.infer<typeof UserProfileSchema>;
 export const UpdateUserProfileSchema = UserProfileSchema.partial().omit({
 	id: true,
 	keycloakId: true,
+	email: true,
 	createdAt: true,
 	updatedAt: true,
 });

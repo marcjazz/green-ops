@@ -20,6 +20,23 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
 export type UserProfile = $Result.DefaultSelection<Prisma.$UserProfilePayload>
 
 /**
+ * Enums
+ */
+export namespace $Enums {
+  export const Theme: {
+  light: 'light',
+  dark: 'dark'
+};
+
+export type Theme = (typeof Theme)[keyof typeof Theme]
+
+}
+
+export type Theme = $Enums.Theme
+
+export const Theme: typeof $Enums.Theme
+
+/**
  * ##  Prisma Client ʲˢ
  *
  * Type-safe database client for TypeScript & Node.js
@@ -880,6 +897,8 @@ export namespace Prisma {
     id: string | null
     keycloakId: string | null
     email: string | null
+    theme: $Enums.Theme | null
+    notifications: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -888,6 +907,8 @@ export namespace Prisma {
     id: string | null
     keycloakId: string | null
     email: string | null
+    theme: $Enums.Theme | null
+    notifications: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -896,7 +917,9 @@ export namespace Prisma {
     id: number
     keycloakId: number
     email: number
-    preferences: number
+    theme: number
+    notifications: number
+    dashboardLayout: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -907,6 +930,8 @@ export namespace Prisma {
     id?: true
     keycloakId?: true
     email?: true
+    theme?: true
+    notifications?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -915,6 +940,8 @@ export namespace Prisma {
     id?: true
     keycloakId?: true
     email?: true
+    theme?: true
+    notifications?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -923,7 +950,9 @@ export namespace Prisma {
     id?: true
     keycloakId?: true
     email?: true
-    preferences?: true
+    theme?: true
+    notifications?: true
+    dashboardLayout?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -1005,7 +1034,9 @@ export namespace Prisma {
     id: string
     keycloakId: string
     email: string
-    preferences: JsonValue
+    theme: $Enums.Theme
+    notifications: boolean
+    dashboardLayout: JsonValue | null
     createdAt: Date
     updatedAt: Date
     _count: UserProfileCountAggregateOutputType | null
@@ -1031,7 +1062,9 @@ export namespace Prisma {
     id?: boolean
     keycloakId?: boolean
     email?: boolean
-    preferences?: boolean
+    theme?: boolean
+    notifications?: boolean
+    dashboardLayout?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["userProfile"]>
@@ -1040,7 +1073,9 @@ export namespace Prisma {
     id?: boolean
     keycloakId?: boolean
     email?: boolean
-    preferences?: boolean
+    theme?: boolean
+    notifications?: boolean
+    dashboardLayout?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["userProfile"]>
@@ -1049,7 +1084,9 @@ export namespace Prisma {
     id?: boolean
     keycloakId?: boolean
     email?: boolean
-    preferences?: boolean
+    theme?: boolean
+    notifications?: boolean
+    dashboardLayout?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["userProfile"]>
@@ -1058,12 +1095,14 @@ export namespace Prisma {
     id?: boolean
     keycloakId?: boolean
     email?: boolean
-    preferences?: boolean
+    theme?: boolean
+    notifications?: boolean
+    dashboardLayout?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type UserProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "keycloakId" | "email" | "preferences" | "createdAt" | "updatedAt", ExtArgs["result"]["userProfile"]>
+  export type UserProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "keycloakId" | "email" | "theme" | "notifications" | "dashboardLayout" | "createdAt" | "updatedAt", ExtArgs["result"]["userProfile"]>
 
   export type $UserProfilePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "UserProfile"
@@ -1072,7 +1111,9 @@ export namespace Prisma {
       id: string
       keycloakId: string
       email: string
-      preferences: Prisma.JsonValue
+      theme: $Enums.Theme
+      notifications: boolean
+      dashboardLayout: Prisma.JsonValue | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["userProfile"]>
@@ -1501,7 +1542,9 @@ export namespace Prisma {
     readonly id: FieldRef<"UserProfile", 'String'>
     readonly keycloakId: FieldRef<"UserProfile", 'String'>
     readonly email: FieldRef<"UserProfile", 'String'>
-    readonly preferences: FieldRef<"UserProfile", 'Json'>
+    readonly theme: FieldRef<"UserProfile", 'Theme'>
+    readonly notifications: FieldRef<"UserProfile", 'Boolean'>
+    readonly dashboardLayout: FieldRef<"UserProfile", 'Json'>
     readonly createdAt: FieldRef<"UserProfile", 'DateTime'>
     readonly updatedAt: FieldRef<"UserProfile", 'DateTime'>
   }
@@ -1893,7 +1936,9 @@ export namespace Prisma {
     id: 'id',
     keycloakId: 'keycloakId',
     email: 'email',
-    preferences: 'preferences',
+    theme: 'theme',
+    notifications: 'notifications',
+    dashboardLayout: 'dashboardLayout',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -1909,11 +1954,12 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-  export const JsonNullValueInput: {
+  export const NullableJsonNullValueInput: {
+    DbNull: typeof DbNull,
     JsonNull: typeof JsonNull
   };
 
-  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+  export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
   export const QueryMode: {
@@ -1933,6 +1979,14 @@ export namespace Prisma {
   export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
+  export const NullsOrder: {
+    first: 'first',
+    last: 'last'
+  };
+
+  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
   /**
    * Field references
    */
@@ -1949,6 +2003,27 @@ export namespace Prisma {
    * Reference to a field of type 'String[]'
    */
   export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Theme'
+   */
+  export type EnumThemeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Theme'>
+    
+
+
+  /**
+   * Reference to a field of type 'Theme[]'
+   */
+  export type ListEnumThemeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Theme[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -2004,7 +2079,9 @@ export namespace Prisma {
     id?: StringFilter<"UserProfile"> | string
     keycloakId?: StringFilter<"UserProfile"> | string
     email?: StringFilter<"UserProfile"> | string
-    preferences?: JsonFilter<"UserProfile">
+    theme?: EnumThemeFilter<"UserProfile"> | $Enums.Theme
+    notifications?: BoolFilter<"UserProfile"> | boolean
+    dashboardLayout?: JsonNullableFilter<"UserProfile">
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
   }
@@ -2013,7 +2090,9 @@ export namespace Prisma {
     id?: SortOrder
     keycloakId?: SortOrder
     email?: SortOrder
-    preferences?: SortOrder
+    theme?: SortOrder
+    notifications?: SortOrder
+    dashboardLayout?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -2025,7 +2104,9 @@ export namespace Prisma {
     AND?: UserProfileWhereInput | UserProfileWhereInput[]
     OR?: UserProfileWhereInput[]
     NOT?: UserProfileWhereInput | UserProfileWhereInput[]
-    preferences?: JsonFilter<"UserProfile">
+    theme?: EnumThemeFilter<"UserProfile"> | $Enums.Theme
+    notifications?: BoolFilter<"UserProfile"> | boolean
+    dashboardLayout?: JsonNullableFilter<"UserProfile">
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
   }, "id" | "keycloakId" | "email">
@@ -2034,7 +2115,9 @@ export namespace Prisma {
     id?: SortOrder
     keycloakId?: SortOrder
     email?: SortOrder
-    preferences?: SortOrder
+    theme?: SortOrder
+    notifications?: SortOrder
+    dashboardLayout?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserProfileCountOrderByAggregateInput
@@ -2049,7 +2132,9 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"UserProfile"> | string
     keycloakId?: StringWithAggregatesFilter<"UserProfile"> | string
     email?: StringWithAggregatesFilter<"UserProfile"> | string
-    preferences?: JsonWithAggregatesFilter<"UserProfile">
+    theme?: EnumThemeWithAggregatesFilter<"UserProfile"> | $Enums.Theme
+    notifications?: BoolWithAggregatesFilter<"UserProfile"> | boolean
+    dashboardLayout?: JsonNullableWithAggregatesFilter<"UserProfile">
     createdAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
   }
@@ -2058,7 +2143,9 @@ export namespace Prisma {
     id?: string
     keycloakId: string
     email: string
-    preferences?: JsonNullValueInput | InputJsonValue
+    theme?: $Enums.Theme
+    notifications?: boolean
+    dashboardLayout?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -2067,7 +2154,9 @@ export namespace Prisma {
     id?: string
     keycloakId: string
     email: string
-    preferences?: JsonNullValueInput | InputJsonValue
+    theme?: $Enums.Theme
+    notifications?: boolean
+    dashboardLayout?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -2076,7 +2165,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     keycloakId?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    preferences?: JsonNullValueInput | InputJsonValue
+    theme?: EnumThemeFieldUpdateOperationsInput | $Enums.Theme
+    notifications?: BoolFieldUpdateOperationsInput | boolean
+    dashboardLayout?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -2085,7 +2176,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     keycloakId?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    preferences?: JsonNullValueInput | InputJsonValue
+    theme?: EnumThemeFieldUpdateOperationsInput | $Enums.Theme
+    notifications?: BoolFieldUpdateOperationsInput | boolean
+    dashboardLayout?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -2094,7 +2187,9 @@ export namespace Prisma {
     id?: string
     keycloakId: string
     email: string
-    preferences?: JsonNullValueInput | InputJsonValue
+    theme?: $Enums.Theme
+    notifications?: boolean
+    dashboardLayout?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -2103,7 +2198,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     keycloakId?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    preferences?: JsonNullValueInput | InputJsonValue
+    theme?: EnumThemeFieldUpdateOperationsInput | $Enums.Theme
+    notifications?: BoolFieldUpdateOperationsInput | boolean
+    dashboardLayout?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -2112,7 +2209,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     keycloakId?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    preferences?: JsonNullValueInput | InputJsonValue
+    theme?: EnumThemeFieldUpdateOperationsInput | $Enums.Theme
+    notifications?: BoolFieldUpdateOperationsInput | boolean
+    dashboardLayout?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -2131,14 +2230,26 @@ export namespace Prisma {
     mode?: QueryMode
     not?: NestedStringFilter<$PrismaModel> | string
   }
-  export type JsonFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
 
-  export type JsonFilterBase<$PrismaModel = never> = {
+  export type EnumThemeFilter<$PrismaModel = never> = {
+    equals?: $Enums.Theme | EnumThemeFieldRefInput<$PrismaModel>
+    in?: $Enums.Theme[] | ListEnumThemeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.Theme[] | ListEnumThemeFieldRefInput<$PrismaModel>
+    not?: NestedEnumThemeFilter<$PrismaModel> | $Enums.Theme
+  }
+
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
     equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
     path?: string[]
     mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
@@ -2166,11 +2277,18 @@ export namespace Prisma {
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
+  export type SortOrderInput = {
+    sort: SortOrder
+    nulls?: NullsOrder
+  }
+
   export type UserProfileCountOrderByAggregateInput = {
     id?: SortOrder
     keycloakId?: SortOrder
     email?: SortOrder
-    preferences?: SortOrder
+    theme?: SortOrder
+    notifications?: SortOrder
+    dashboardLayout?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -2179,6 +2297,8 @@ export namespace Prisma {
     id?: SortOrder
     keycloakId?: SortOrder
     email?: SortOrder
+    theme?: SortOrder
+    notifications?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -2187,6 +2307,8 @@ export namespace Prisma {
     id?: SortOrder
     keycloakId?: SortOrder
     email?: SortOrder
+    theme?: SortOrder
+    notifications?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -2208,14 +2330,32 @@ export namespace Prisma {
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
   }
-  export type JsonWithAggregatesFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
 
-  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+  export type EnumThemeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.Theme | EnumThemeFieldRefInput<$PrismaModel>
+    in?: $Enums.Theme[] | ListEnumThemeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.Theme[] | ListEnumThemeFieldRefInput<$PrismaModel>
+    not?: NestedEnumThemeWithAggregatesFilter<$PrismaModel> | $Enums.Theme
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumThemeFilter<$PrismaModel>
+    _max?: NestedEnumThemeFilter<$PrismaModel>
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
     equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
     path?: string[]
     mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
@@ -2230,9 +2370,9 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedJsonFilter<$PrismaModel>
-    _max?: NestedJsonFilter<$PrismaModel>
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -2253,6 +2393,14 @@ export namespace Prisma {
     set?: string
   }
 
+  export type EnumThemeFieldUpdateOperationsInput = {
+    set?: $Enums.Theme
+  }
+
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
   export type DateTimeFieldUpdateOperationsInput = {
     set?: Date | string
   }
@@ -2269,6 +2417,18 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     not?: NestedStringFilter<$PrismaModel> | string
+  }
+
+  export type NestedEnumThemeFilter<$PrismaModel = never> = {
+    equals?: $Enums.Theme | EnumThemeFieldRefInput<$PrismaModel>
+    in?: $Enums.Theme[] | ListEnumThemeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.Theme[] | ListEnumThemeFieldRefInput<$PrismaModel>
+    not?: NestedEnumThemeFilter<$PrismaModel> | $Enums.Theme
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type NestedDateTimeFilter<$PrismaModel = never> = {
@@ -2309,14 +2469,43 @@ export namespace Prisma {
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntFilter<$PrismaModel> | number
   }
-  export type NestedJsonFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
 
-  export type NestedJsonFilterBase<$PrismaModel = never> = {
+  export type NestedEnumThemeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.Theme | EnumThemeFieldRefInput<$PrismaModel>
+    in?: $Enums.Theme[] | ListEnumThemeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.Theme[] | ListEnumThemeFieldRefInput<$PrismaModel>
+    not?: NestedEnumThemeWithAggregatesFilter<$PrismaModel> | $Enums.Theme
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumThemeFilter<$PrismaModel>
+    _max?: NestedEnumThemeFilter<$PrismaModel>
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
     equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
     path?: string[]
     mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
