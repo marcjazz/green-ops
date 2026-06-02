@@ -25,11 +25,13 @@ COPY apps/alerts-service/package.json ./apps/alerts-service/package.json
 COPY packages/shared ./packages/shared
 RUN pnpm install --frozen-lockfile --filter alerts-service --filter shared
 
-# Copy built artifacts
+# Copy built artifacts and prisma generated client
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/apps/alerts-service/dist ./apps/alerts-service/dist
 COPY --from=builder /app/apps/alerts-service/prisma ./apps/alerts-service/prisma
 COPY --from=builder /app/apps/alerts-service/src/generated ./apps/alerts-service/dist/generated
+
 
 EXPOSE 3001
 CMD ["node", "apps/alerts-service/dist/index.js"]
