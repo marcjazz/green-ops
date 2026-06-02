@@ -1,6 +1,6 @@
 FROM node:20-slim AS builder
 WORKDIR /app
-RUN npm install -g pnpm
+RUN npm install -g pnpm && apt-get update -y && apt-get install -y openssl
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.json ./
 COPY packages/shared ./packages/shared
 COPY apps/user-service ./apps/user-service
@@ -13,7 +13,7 @@ RUN pnpm --filter user-service run build
 
 FROM node:20-slim
 WORKDIR /app
-RUN npm install -g pnpm
+RUN npm install -g pnpm && apt-get update -y && apt-get install -y openssl
 ENV CI=true
 
 # Copy package files
