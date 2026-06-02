@@ -4,7 +4,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import { Pool } from "pg";
-import { CreateAlertSchema } from "shared";
+import { CreateAlertSchema, authenticateJWT } from "shared";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -15,6 +15,9 @@ const port = process.env.PORT || 3001;
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+// Protect all routes
+app.use(authenticateJWT);
 
 // Health check
 app.get("/health", (_req, res) => {
