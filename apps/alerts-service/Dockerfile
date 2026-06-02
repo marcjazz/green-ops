@@ -1,10 +1,11 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 RUN npm install -g pnpm
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.json ./
 COPY packages/shared ./packages/shared
 COPY apps/alerts-service ./apps/alerts-service
 RUN pnpm install --frozen-lockfile
+RUN cd apps/alerts-service && npx prisma generate
 RUN pnpm --filter alerts-service run build
 
 FROM node:20-slim
@@ -15,6 +16,7 @@ COPY --from=builder /app/packages/shared ./packages/shared
 COPY --from=builder /app/apps/alerts-service/dist ./apps/alerts-service/dist
 COPY --from=builder /app/apps/alerts-service/package.json ./apps/alerts-service/package.json
 COPY --from=builder /app/apps/alerts-service/prisma ./apps/alerts-service/prisma
+COPY --from=builder /app/apps/alerts-service/src/generated ./apps/alerts-service/src/generated
 
 EXPOSE 3001
 CMD ["pnpm", "--filter", "alerts-service", "run", "start"]
