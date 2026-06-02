@@ -1,4 +1,4 @@
-FROM node:20-slim AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 RUN npm install -g pnpm
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.json ./
@@ -11,7 +11,7 @@ RUN pnpm --filter shared run build
 RUN cd apps/alerts-service && npx prisma generate
 RUN pnpm --filter alerts-service run build
 
-FROM node:20-slim
+FROM node:24-slim
 WORKDIR /app
 RUN npm install -g pnpm
 ENV CI=true
