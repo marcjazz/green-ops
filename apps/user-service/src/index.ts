@@ -8,13 +8,7 @@ import { PrismaClient } from "@prisma/client";
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient({
-	datasources: {
-		db: {
-			url: process.env.DATABASE_URL,
-		},
-	},
-});
+const prisma = new PrismaClient();
 const port = process.env.PORT || 3003;
 
 app.use(helmet());
