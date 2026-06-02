@@ -4,3 +4,4 @@ dist
 .cache
 *.log
 prisma/dev.db
+src/generated/prisma
