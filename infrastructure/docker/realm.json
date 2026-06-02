@@ -7,8 +7,8 @@
       "clientId": "greenops-frontend",
       "enabled": true,
       "publicClient": true,
-      "redirectUris": ["http://greenops.local/*"],
-      "webOrigins": ["http://greenops.local"]
+      "redirectUris": ["https://greenops.local/*"],
+      "webOrigins": ["https://greenops.local"]
     }
   ]
 }
