@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import jwt, { VerifyErrors } from 'jsonwebtoken';
+import jwt, { type VerifyErrors } from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 
 const client = jwksClient({
