@@ -1,0 +1,14 @@
+{
+  "id": "greenops",
+  "realm": "greenops",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "greenops-frontend",
+      "enabled": true,
+      "publicClient": true,
+      "redirectUris": ["http://greenops.local/*"],
+      "webOrigins": ["http://greenops.local"]
+    }
+  ]
+}
