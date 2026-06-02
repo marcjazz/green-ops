@@ -2,9 +2,9 @@ import { z } from "zod";
 
 // --- User Profile ---
 export const UserProfileSchema = z.object({
-	id: z.string().uuid(),
+	id: z.uuid(),
 	keycloakId: z.string(),
-	email: z.string().email(),
+	email: z.email(),
 	theme: z.enum(["light", "dark"]).default("light"),
 	notifications: z.boolean().default(true),
 	dashboardLayout: z.any().optional(),
@@ -27,7 +27,7 @@ export const AlertSeveritySchema = z.enum(["info", "warning", "critical"]);
 export type AlertSeverity = z.infer<typeof AlertSeveritySchema>;
 
 export const AlertSchema = z.object({
-	id: z.string().uuid(),
+	id: z.uuid(),
 	title: z.string(),
 	description: z.string(),
 	severity: AlertSeveritySchema,
