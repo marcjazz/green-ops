@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Severity {
+  info
+  warning
+  critical
+}
+
+model Alert {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  severity    Severity @default(info)
+  metricName  String
+  metricValue Float
+  threshold   Float
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}

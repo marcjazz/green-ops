@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: greenops
+      POSTGRES_PASSWORD: greenops_password
+      POSTGRES_DB: greenops_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+
+  alerts-service:
+    build:
+      context: ../../
+      dockerfile: apps/alerts-service/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://greenops:greenops_password@postgres:5432/greenops_db?schema=public
+      PORT: 3001
+    depends_on:
+      - postgres
+    ports:
+      - "3001:3001"
+
+  user-service:
+    build:
+      context: ../../
+      dockerfile: apps/user-service/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://greenops:greenops_password@postgres:5432/greenops_db?schema=public
+      PORT: 3003
+    depends_on:
+      - postgres
+    ports:
+      - "3003:3003"
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
