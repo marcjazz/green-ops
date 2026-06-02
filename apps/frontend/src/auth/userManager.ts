@@ -1,7 +1,7 @@
 import { UserManager } from 'oidc-client-ts';
 
 const oidcConfig = {
-  authority: 'http://accounts.greenops.local/realms/greenops',
+  authority: 'http://accounts.greenops.local/realms/master',
   client_id: 'greenops-frontend',
   redirect_uri: 'http://greenops.local/',
 };
