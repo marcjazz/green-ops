@@ -7,6 +7,8 @@ import { CreateAlertSchema } from "shared";
 
 dotenv.config();
 
+console.log("DATABASE_URL:", process.env.DATABASE_URL);
+
 const app = express();
 const prisma = new PrismaClient();
 const port = process.env.PORT || 3001;
