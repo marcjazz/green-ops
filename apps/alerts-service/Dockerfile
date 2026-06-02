@@ -23,7 +23,7 @@ COPY apps/alerts-service/package.json ./apps/alerts-service/package.json
 
 # Install prod deps and link local packages
 COPY packages/shared ./packages/shared
-RUN pnpm install --prod --frozen-lockfile --filter alerts-service --filter shared
+RUN pnpm install --frozen-lockfile --filter alerts-service --filter shared
 
 # Copy built artifacts
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
