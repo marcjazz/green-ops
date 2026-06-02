@@ -7,16 +7,15 @@ COPY apps/user-service ./apps/user-service
 RUN pnpm install --frozen-lockfile
 RUN cd apps/user-service && npx prisma generate
 RUN pnpm --filter user-service run build
+RUN pnpm install --prod --frozen-lockfile
 
 FROM node:20-slim
 WORKDIR /app
-RUN npm install -g pnpm
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/shared ./packages/shared
 COPY --from=builder /app/apps/user-service/dist ./apps/user-service/dist
 COPY --from=builder /app/apps/user-service/package.json ./apps/user-service/package.json
-COPY --from=builder /app/apps/user-service/prisma ./apps/user-service/prisma
-COPY --from=builder /app/apps/user-service/src/generated ./apps/user-service/src/generated
+COPY --from=builder /app/apps/user-service/src/generated ./apps/user-service/dist/generated
 
 EXPOSE 3003
-CMD ["pnpm", "--filter", "user-service", "run", "start"]
+CMD ["node", "apps/user-service/dist/index.js"]
