@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import type { Request, Response, NextFunction } from 'express';
+import jwt, { VerifyErrors } from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 
 const client = jwksClient({
@@ -18,7 +18,7 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
 
   if (authHeader) {
     const token = authHeader.split(' ')[1];
-    jwt.verify(token, getKey, { algorithms: ['RS256'] }, (err, user) => {
+    jwt.verify(token || '', getKey, { algorithms: ['RS256'] }, (err: VerifyErrors | null, user: any) => {
       if (err) {
         return res.sendStatus(403);
       }
