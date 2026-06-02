@@ -1,9 +1,13 @@
 {
 	"name": "shared",
 	"version": "1.0.0",
-	"description": "",
-	"main": "index.js",
+	"description": "Shared types and schemas for GreenOps",
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
 	"scripts": {
+		"build": "tsc",
+		"dev": "tsc -w",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [],
@@ -12,5 +16,8 @@
 	"packageManager": "pnpm@10.33.0",
 	"dependencies": {
 		"zod": "^4.4.3"
+	},
+	"devDependencies": {
+		"typescript": "^6.0.3"
 	}
 }

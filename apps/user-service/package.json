@@ -2,6 +2,7 @@
 	"name": "user-service",
 	"version": "1.0.0",
 	"description": "",
+	"type": "module",
 	"main": "dist/index.js",
 	"scripts": {
 		"dev": "ts-node-dev --respawn --transpile-only src/index.ts",
@@ -14,6 +15,7 @@
 	"license": "ISC",
 	"packageManager": "pnpm@10.33.0",
 	"dependencies": {
+		"@prisma/client": "^7.8.0",
 		"cors": "^2.8.6",
 		"dotenv": "^17.4.2",
 		"express": "^5.2.1",
