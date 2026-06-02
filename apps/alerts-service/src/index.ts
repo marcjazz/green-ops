@@ -1,9 +1,9 @@
-import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { PrismaClient } from "@prisma/client";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import { Pool } from "pg";
 import { CreateAlertSchema } from "shared";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
