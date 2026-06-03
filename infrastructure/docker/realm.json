@@ -6,6 +6,7 @@
     {
       "clientId": "greenops-frontend",
       "enabled": true,
+      "protocol": "openid-connect",
       "publicClient": true,
       "redirectUris": ["https://greenops.local/*", "https://greenops.local/", "https://monitor.greenops.local/login/generic_oauth"],
       "webOrigins": ["https://greenops.local", "https://monitor.greenops.local"]
@@ -13,6 +14,7 @@
     {
       "clientId": "greenops-grafana",
       "enabled": true,
+      "protocol": "openid-connect",
       "publicClient": false,
       "secret": "your-client-secret",
       "redirectUris": ["https://monitor.greenops.local/login/generic_oauth"],
