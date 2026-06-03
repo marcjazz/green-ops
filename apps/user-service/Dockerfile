@@ -33,4 +33,4 @@ COPY --from=builder /app/apps/user-service/prisma ./apps/user-service/prisma
 
 
 EXPOSE 3003
-CMD ["node", "apps/user-service/dist/index.js"]
+CMD cd apps/user-service && npx prisma migrate deploy && node dist/index.js

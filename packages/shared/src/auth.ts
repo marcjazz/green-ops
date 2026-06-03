@@ -8,6 +8,10 @@ const client = jwksClient({
 
 function getKey(header: any, callback: any) {
   client.getSigningKey(header.kid, (err, key) => {
+    if (err) {
+      console.error("Error getting signing key:", err);
+      return callback(err);
+    }
     const signingKey = (key as any).getPublicKey();
     callback(null, signingKey);
   });
@@ -20,6 +24,7 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
     const token = authHeader.split(' ')[1];
     jwt.verify(token || '', getKey, { algorithms: ['RS256'] }, (err: VerifyErrors | null, user: any) => {
       if (err) {
+        console.error("JWT verification failed:", err.message);
         return res.sendStatus(403);
       }
       (req as any).user = user;

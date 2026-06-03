@@ -33,4 +33,4 @@ COPY --from=builder /app/apps/alerts-service/prisma ./apps/alerts-service/prisma
 
 
 EXPOSE 3001
-CMD ["node", "apps/alerts-service/dist/index.js"]
+CMD cd apps/alerts-service && npx prisma migrate deploy && node dist/index.js

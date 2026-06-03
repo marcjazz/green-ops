@@ -30,8 +30,9 @@ services:
       context: ../../
       dockerfile: apps/alerts-service/Dockerfile
     environment:
-      DATABASE_URL: postgresql://greenops:greenops_password@postgres:5432/greenops_db?schema=public
+      DATABASE_URL: postgresql://greenops:greenops_password@postgres:5432/greenops_db?schema=alerts
       PORT: 3001
+      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/greenops/protocol/openid-connect/certs
     depends_on:
       - postgres
 
@@ -40,8 +41,9 @@ services:
       context: ../../
       dockerfile: apps/user-service/Dockerfile
     environment:
-      DATABASE_URL: postgresql://greenops:greenops_password@postgres:5432/greenops_db?schema=public
+      DATABASE_URL: postgresql://greenops:greenops_password@postgres:5432/greenops_db?schema=users
       PORT: 3003
+      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/greenops/protocol/openid-connect/certs
     depends_on:
       - postgres
 
