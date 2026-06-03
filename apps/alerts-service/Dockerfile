@@ -30,6 +30,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/apps/alerts-service/dist ./apps/alerts-service/dist
 COPY --from=builder /app/apps/alerts-service/prisma ./apps/alerts-service/prisma
+COPY --from=builder /app/apps/alerts-service/prisma.config.ts ./apps/alerts-service/prisma.config.ts
 
 
 EXPOSE 3001

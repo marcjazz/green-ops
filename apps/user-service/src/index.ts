@@ -24,15 +24,14 @@ app.get("/health", (_req, res) => {
 	res.json({ status: "ok", service: "user-service" });
 });
 
-// GET /profile (using keycloakId from some middleware later)
+// GET /profile
 app.get("/profile", async (req, res) => {
-	// Mock keycloakId for now, would normally come from JWT
-	const keycloakId = req.headers["x-user-id"] as string;
+	const keycloakId = (req as any).user?.sub;
 
 	if (!keycloakId) {
 		return res
 			.status(401)
-			.json({ success: false, error: "Missing user identity" });
+			.json({ success: false, error: "Missing user identity from token" });
 	}
 
 	try {
@@ -45,8 +44,7 @@ app.get("/profile", async (req, res) => {
 			profile = await prisma.userProfile.create({
 				data: {
 					keycloakId,
-					email:
-						(req.headers["x-user-email"] as string) || "unknown@example.com",
+					email: (req as any).user?.email || "unknown@example.com",
 				},
 			});
 		}
@@ -59,12 +57,12 @@ app.get("/profile", async (req, res) => {
 
 // PATCH /profile
 app.patch("/profile", async (req, res) => {
-	const keycloakId = req.headers["x-user-id"] as string;
+	const keycloakId = (req as any).user?.sub;
 
 	if (!keycloakId) {
 		return res
 			.status(401)
-			.json({ success: false, error: "Missing user identity" });
+			.json({ success: false, error: "Missing user identity from token" });
 	}
 
 	try {

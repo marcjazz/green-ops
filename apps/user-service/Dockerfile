@@ -30,6 +30,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/apps/user-service/dist ./apps/user-service/dist
 COPY --from=builder /app/apps/user-service/prisma ./apps/user-service/prisma
+COPY --from=builder /app/apps/user-service/prisma.config.ts ./apps/user-service/prisma.config.ts
 
 
 EXPOSE 3003
