@@ -9,6 +9,14 @@
       "publicClient": true,
       "redirectUris": ["https://greenops.local/*", "https://greenops.local/", "https://monitor.greenops.local/login/generic_oauth"],
       "webOrigins": ["https://greenops.local", "https://monitor.greenops.local"]
+    },
+    {
+      "clientId": "greenops-grafana",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "your-client-secret",
+      "redirectUris": ["https://monitor.greenops.local/login/generic_oauth"],
+      "webOrigins": ["https://monitor.greenops.local"]
     }
   ]
 }
