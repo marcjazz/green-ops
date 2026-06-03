@@ -18,5 +18,25 @@
       "redirectUris": ["https://monitor.greenops.local/login/generic_oauth"],
       "webOrigins": ["https://monitor.greenops.local"]
     }
-  ]
+  ],
+  "users": [
+    {
+      "username": "user1",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user1password"
+        }
+      ],
+      "realmRoles": ["user"]
+    }
+  ],
+  "roles": {
+    "realm": [
+      { "name": "user" },
+      { "name": "admin" }
+    ]
+  }
 }
