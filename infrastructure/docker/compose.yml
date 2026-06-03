@@ -88,6 +88,7 @@ services:
       GF_AUTH_GENERIC_OAUTH_SKIP_VERIFY_SSL: "true"
       GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE: true
       GF_SERVER_ROOT_URL: "https://monitor.greenops.local/"
+      GF_LOG_LEVEL: "debug"
     depends_on:
       - prometheus
 
