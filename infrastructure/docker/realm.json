@@ -16,7 +16,7 @@
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": false,
-      "secret": "your-client-secret",
+      "secret": "super-secret-grafana-key",
       "redirectUris": ["https://monitor.greenops.local/login/generic_oauth"],
       "webOrigins": ["https://monitor.greenops.local"]
     }
@@ -25,6 +25,8 @@
     {
       "username": "marco.kuidja",
       "email": "marco.kuidja@greenops.local",
+      "firstName": "Marco",
+      "lastName": "Kuidja",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
