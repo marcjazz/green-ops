@@ -24,6 +24,8 @@
   "users": [
     {
       "username": "marco.kuidja",
+      "firstName": "Marco",
+      "lastName": "Kuidja",
       "email": "marco.kuidja@greenops.local",
       "enabled": true,
       "emailVerified": true,
