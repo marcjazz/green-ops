@@ -4,12 +4,15 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["alerts"]
 }
 
 enum Severity {
   info
   warning
   critical
+
+  @@schema("alerts")
 }
 
 model Alert {
@@ -22,4 +25,6 @@ model Alert {
   threshold   Float
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
+
+  @@schema("alerts")
 }

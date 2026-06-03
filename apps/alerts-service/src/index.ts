@@ -1,10 +1,15 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import { CreateAlertSchema, authenticateJWT } from "shared";
+import { startMonitor } from "./monitor.js";
 
-const prisma = new PrismaClient();
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -12,6 +17,7 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+// Logger
 app.use((req, _res, next) => {
 	console.log(`${req.method} ${req.url}`);
 	next();
@@ -32,7 +38,8 @@ app.get("/alerts", async (_req, res) => {
 			orderBy: { createdAt: "desc" },
 		});
 		res.json({ success: true, data: alerts });
-	} catch (_error) {
+	} catch (error: any) {
+		console.error("Error in GET /alerts:", error.message);
 		res.status(500).json({ success: false, error: "Failed to fetch alerts" });
 	}
 });
@@ -45,8 +52,8 @@ app.post("/alerts", async (req, res) => {
 			data: validated,
 		});
 		res.status(201).json({ success: true, data: alert });
-	} catch (_error) {
-		res.status(400).json({ success: false, error: "Invalid alert data" });
+	} catch (error: any) {
+		res.status(400).json({ success: false, error: "Invalid alert data", details: error.message });
 	}
 });
 
@@ -66,4 +73,5 @@ app.patch("/alerts/:id/read", async (req, res) => {
 
 app.listen(port, () => {
 	console.log(`Alerts service listening at http://localhost:${port}`);
+	startMonitor(prisma);
 });

@@ -33,6 +33,7 @@ services:
       DATABASE_URL: postgresql://greenops:greenops_password@postgres:5432/greenops_db?schema=alerts
       PORT: 3001
       KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/greenops/protocol/openid-connect/certs
+      PROMETHEUS_URL: http://prometheus:9090
     depends_on:
       - postgres
 

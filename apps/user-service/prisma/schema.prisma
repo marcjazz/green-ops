@@ -4,11 +4,14 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["users"]
 }
 
 enum Theme {
   light
   dark
+
+  @@schema("users")
 }
 
 model UserProfile {
@@ -20,4 +23,6 @@ model UserProfile {
   dashboardLayout Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@schema("users")
 }
