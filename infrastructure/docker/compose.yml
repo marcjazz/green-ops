@@ -84,6 +84,7 @@ services:
       GF_AUTH_GENERIC_OAUTH_ALLOWED_DOMAINS: "greenops.local accounts.greenops.local monitor.greenops.local"
       GF_AUTH_GENERIC_OAUTH_REDIRECT_URI: "https://monitor.greenops.local/login/generic_oauth"
       GF_AUTH_GENERIC_OAUTH_SCOPES: "openid profile email"
+      GF_AUTH_GENERIC_OAUTH_SKIP_VERIFY_SSL: "true"
       GF_SERVER_ROOT_URL: "https://monitor.greenops.local/"
     depends_on:
       - prometheus
