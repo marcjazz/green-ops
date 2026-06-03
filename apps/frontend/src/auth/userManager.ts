@@ -5,7 +5,8 @@ const oidcConfig = {
   client_id: 'greenops-frontend',
   redirect_uri: 'https://greenops.local/',
   automaticSilentRenew: true,
-  monitorSession: false, // Disables the problematic 3rd-party cookie iframe
+  monitorSession: false,
+  scope: 'openid profile email',
 };
 
 export const userManager = new UserManager(oidcConfig);
