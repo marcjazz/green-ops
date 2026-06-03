@@ -18,7 +18,22 @@
       "publicClient": false,
       "secret": "super-secret-grafana-key",
       "redirectUris": ["https://monitor.greenops.local/login/generic_oauth"],
-      "webOrigins": ["https://monitor.greenops.local"]
+      "webOrigins": ["https://monitor.greenops.local"],
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String"
+          }
+        }
+      ]
     }
   ],
   "users": [
