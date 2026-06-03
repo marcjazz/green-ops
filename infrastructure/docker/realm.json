@@ -35,7 +35,7 @@
           "value": "user1password"
         }
       ],
-      "realmRoles": ["user"],
+      "realmRoles": ["admin"],
       "requiredActions": []
     }
   ],
