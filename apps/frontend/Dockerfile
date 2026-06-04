@@ -5,6 +5,7 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.json ./
 COPY packages/shared ./packages/shared
 COPY apps/frontend ./apps/frontend
 RUN pnpm install --frozen-lockfile
+RUN pnpm --filter shared run build
 RUN pnpm --filter frontend run build
 
 FROM nginx:alpine
