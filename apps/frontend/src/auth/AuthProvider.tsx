@@ -10,5 +10,18 @@ interface AuthProviderWrapperProps {
 export const AuthProviderWrapper: React.FC<AuthProviderWrapperProps> = ({
 	children,
 }) => {
-	return <AuthProvider userManager={userManager}>{children}</AuthProvider>;
+	return (
+		<AuthProvider
+			userManager={userManager}
+			onSigninCallback={() => {
+				window.history.replaceState(
+					{},
+					document.title,
+					window.location.pathname,
+				);
+			}}
+		>
+			{children}
+		</AuthProvider>
+	);
 };
