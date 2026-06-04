@@ -23,6 +23,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/user/, '/profile'),
       },
+      '/api/prometheus': {
+        target: 'http://localhost:9090',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/prometheus/, ''),
+      },
     },
   },
 })
