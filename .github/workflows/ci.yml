@@ -31,10 +31,15 @@ jobs:
       - name: Build shared package
         run: pnpm --filter shared run build
 
-      - name: Generate Prisma Client
+      - name: Type Check (alerts-service)
         run: |
           pnpm --filter alerts-service exec prisma generate
-          pnpm --filter user-service exec prisma generate
+          pnpm --filter alerts-service exec tsc --noEmit
 
-      - name: Type Check
-        run: pnpm type-check
+      - name: Type Check (user-service)
+        run: |
+          pnpm --filter user-service exec prisma generate
+          pnpm --filter user-service exec tsc --noEmit
+
+      - name: Type Check (frontend)
+        run: pnpm --filter frontend exec tsc --noEmit
