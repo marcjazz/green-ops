@@ -1,11 +1,11 @@
-import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { PrismaClient } from "@prisma/client";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import { UpdateUserProfileSchema, authenticateJWT } from "shared";
+import { Pool } from "pg";
 import client from "prom-client";
+import { authenticateJWT, UpdateUserProfileSchema } from "shared";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);

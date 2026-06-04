@@ -1,12 +1,12 @@
-import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { PrismaClient } from "@prisma/client";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import { CreateAlertSchema, authenticateJWT } from "shared";
-import { startMonitor } from "./monitor.js";
+import { Pool } from "pg";
 import client from "prom-client";
+import { authenticateJWT, CreateAlertSchema } from "shared";
+import { startMonitor } from "./monitor.js";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -62,7 +62,11 @@ app.post("/alerts", async (req, res) => {
 		});
 		res.status(201).json({ success: true, data: alert });
 	} catch (error: any) {
-		res.status(400).json({ success: false, error: "Invalid alert data", details: error.message });
+		res.status(400).json({
+			success: false,
+			error: "Invalid alert data",
+			details: error.message,
+		});
 	}
 });
 
