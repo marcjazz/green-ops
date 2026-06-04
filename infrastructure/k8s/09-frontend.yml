@@ -41,7 +41,7 @@ metadata:
   name: frontend
   namespace: greenops
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: frontend
   ports:
