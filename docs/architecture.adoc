@@ -51,90 +51,12 @@ Monitoring:: Prometheus (metrics), Grafana (dashboards)
 
 === Architecture Diagram
 
-[mermaid, format=svg]
-....
-graph TD
-    subgraph External["External (browser)"]
-        Browser["User Browser"]
-    end
-
-    subgraph Docker["Docker Compose — greenops.local"]
-        Nginx["Nginx (Reverse Proxy)"]
-        Frontend["Frontend (React SPA)"]
-        Keycloak["Keycloak (Identity Provider)"]
-        Grafana["Grafana (Dashboards)"]
-
-        subgraph Services["Internal Services"]
-            Alerts["alerts-service (Alert API)"]
-            User["user-service (User API)"]
-        end
-
-        Prometheus["Prometheus (Metrics)"]
-        PgExporter["postgres-exporter"]
-        Postgres["PostgreSQL"]
-
-        Browser -->|"HTTPS :443"| Nginx
-
-        Nginx -.->|"static files"| Frontend
-        Nginx -->|"/auth"| Keycloak
-        Nginx -->|"/grafana"| Grafana
-        Nginx -->|"/api/alerts"| Alerts
-        Nginx -->|"/api/user"| User
-        Nginx -->|"/api/prometheus"| Prometheus
-
-        Alerts --- Postgres
-        User --- Postgres
-        PgExporter --- Postgres
-
-        Prometheus -->|"scrape :3001/metrics"| Alerts
-        Prometheus -->|"scrape :3003/metrics"| User
-        Prometheus -->|"scrape :8080/metrics"| Keycloak
-        Prometheus -->|"scrape :9187/metrics"| PgExporter
-        Prometheus -->|"self-scrape"| Prometheus
-
-        Alerts -->|"query API"| Prometheus
-    end
-....
+image::arch-diagram.svg[Architecture Diagram, align="center"]
 
 
 === Request Flow
 
-[mermaid, format=svg]
-....
-sequenceDiagram
-    participant Browser as User Browser
-    participant Nginx as Nginx Reverse Proxy
-    participant Keycloak as Keycloak
-    participant Frontend as Frontend SPA
-    participant Backend as Backend Service
-    participant PG as PostgreSQL
-
-    Note over Browser,PG: Unauthenticated — SPA loads
-
-    Browser->>Nginx: GET https://greenops.local
-    Nginx->>Frontend: Serve SPA
-    Frontend-->>Browser: Sign in button (Keycloak)
-
-    Browser->>Nginx: GET https://accounts.greenops.local
-    Nginx->>Keycloak: OIDC login
-
-    Note over Browser,PG: Authentication
-
-    Keycloak-->>Browser: Login form
-    Browser->>Keycloak: Credentials
-    Keycloak->>Browser: JWT (access_token)
-
-    Note over Browser,PG: Authenticated API call
-
-    Browser->>Nginx: API + Authorization: Bearer &lt;JWT&gt;
-    Nginx->>Backend: Proxy /api/* → service
-    Backend->>Keycloak: Fetch JWKS (cached)
-    Keycloak-->>Backend: Public key
-    Backend->>PG: Query / write
-    PG-->>Backend: Result
-    Backend-->>Nginx: JSON response
-    Nginx-->>Browser: Response
-....
+image::flow-diagram.svg[Request Flow Diagram, align="center"]
 
 Route mapping from Nginx to backend services:
 
