@@ -51,76 +51,96 @@ Monitoring:: Prometheus (metrics), Grafana (dashboards)
 
 === Architecture Diagram
 
-[graphviz, infra-arch, svg]
+[mermaid, format=svg]
 ....
-digraph GreenOps {
-    rankdir=TB;
-    splines=ortho;
-    node [shape=box, style=rounded, fontname="monospace"];
+graph TD
+    subgraph External["External (browser)"]
+        Browser["User Browser"]
+    end
 
-    subgraph cluster_external {
-        label="External (browser)";
-        color=lightgrey;
-        Browser [label="User Browser"];
-    }
+    subgraph Docker["Docker Compose — greenops.local"]
+        Nginx["Nginx (Reverse Proxy)"]
+        Frontend["Frontend (React SPA)"]
+        Keycloak["Keycloak (Identity Provider)"]
+        Grafana["Grafana (Dashboards)"]
 
-    subgraph cluster_infra {
-        label="Docker Compose — greenops.local";
-        color=lightblue;
+        subgraph Services["Internal Services"]
+            Alerts["alerts-service (Alert API)"]
+            User["user-service (User API)"]
+        end
 
-        Nginx [label="Nginx\n(Reverse Proxy)"];
-        Frontend [label="Frontend\n(React SPA)"];
-        Keycloak [label="Keycloak\n(Identity Provider)"];
-        Grafana [label="Grafana\n(Dashboards)"];
+        Prometheus["Prometheus (Metrics)"]
+        PgExporter["postgres-exporter"]
+        Postgres["PostgreSQL"]
 
-        subgraph cluster_services {
-            label="Internal Services";
-            color=beige;
-            Alerts [label="alerts-service\n(Alert API)"];
-            User [label="user-service\n(User API)"];
-        }
+        Browser -->|"HTTPS :443"| Nginx
 
-        Prometheus [label="Prometheus\n(Metrics)"];
-        PgExporter [label="postgres-exporter"];
-        Postgres [label="PostgreSQL"];
+        Nginx -.->|"static files"| Frontend
+        Nginx -->|"/auth"| Keycloak
+        Nginx -->|"/grafana"| Grafana
+        Nginx -->|"/api/alerts"| Alerts
+        Nginx -->|"/api/user"| User
+        Nginx -->|"/api/prometheus"| Prometheus
 
-        Browser -> Nginx [label="HTTPS :443"];
+        Alerts --- Postgres
+        User --- Postgres
+        PgExporter --- Postgres
 
-        Nginx -> Frontend [style=dashed, label="static files"];
-        Nginx -> Keycloak [label="/auth"];
-        Nginx -> Grafana [label="/grafana"];
-        Nginx -> Alerts [label="/api/alerts"];
-        Nginx -> User [label="/api/user"];
-        Nginx -> Prometheus [label="/api/prometheus"];
+        Prometheus -->|"scrape :3001/metrics"| Alerts
+        Prometheus -->|"scrape :3003/metrics"| User
+        Prometheus -->|"scrape :8080/metrics"| Keycloak
+        Prometheus -->|"scrape :9187/metrics"| PgExporter
+        Prometheus -->|"self-scrape"| Prometheus
 
-        Alerts -> Postgres;
-        User -> Postgres;
-        PgExporter -> Postgres;
-
-        Prometheus -> Alerts [label="scrape :3001/metrics"];
-        Prometheus -> User [label="scrape :3003/metrics"];
-        Prometheus -> Keycloak [label="scrape :8080/metrics"];
-        Prometheus -> PgExporter [label="scrape :9187/metrics"];
-        Prometheus -> Prometheus [label="self-scrape"];
-
-        Alerts -> Prometheus [label="query API"];
-    }
-}
+        Alerts -->|"query API"| Prometheus
+    end
 ....
 
-=== Request Flow (authenticated user)
 
-. Browser loads the SPA from Nginx (`https://greenops.local`).
-. Unauthenticated users see a "Sign in with Keycloak" button.
-. Clicking Sign In redirects to Keycloak at `https://accounts.greenops.local`.
-. After login, Keycloak issues an OIDC JWT (`access_token`).
-. The SPA includes the JWT in the `Authorization: Bearer` header on every API call.
-. Nginx proxies API calls to the appropriate backend service.
-+* `/api/alerts/*` → `alerts-service:3001/alerts/*`
-+* `/api/user/*` → `user-service:3003/profile/*`
-+* `/api/prometheus/*` → `prometheus:9090/*`
-. Each backend service validates the JWT via the Keycloak JWKS endpoint.
-. If valid, the request is processed; otherwise a `401` or `403` is returned.
+=== Request Flow
+
+[mermaid, format=svg]
+....
+sequenceDiagram
+    participant Browser as User Browser
+    participant Nginx as Nginx Reverse Proxy
+    participant Keycloak as Keycloak
+    participant Frontend as Frontend SPA
+    participant Backend as Backend Service
+    participant PG as PostgreSQL
+
+    Note over Browser,PG: Unauthenticated — SPA loads
+
+    Browser->>Nginx: GET https://greenops.local
+    Nginx->>Frontend: Serve SPA
+    Frontend-->>Browser: Sign in button (Keycloak)
+
+    Browser->>Nginx: GET https://accounts.greenops.local
+    Nginx->>Keycloak: OIDC login
+
+    Note over Browser,PG: Authentication
+
+    Keycloak-->>Browser: Login form
+    Browser->>Keycloak: Credentials
+    Keycloak->>Browser: JWT (access_token)
+
+    Note over Browser,PG: Authenticated API call
+
+    Browser->>Nginx: API + Authorization: Bearer &lt;JWT&gt;
+    Nginx->>Backend: Proxy /api/* → service
+    Backend->>Keycloak: Fetch JWKS (cached)
+    Keycloak-->>Backend: Public key
+    Backend->>PG: Query / write
+    PG-->>Backend: Result
+    Backend-->>Nginx: JSON response
+    Nginx-->>Browser: Response
+....
+
+Route mapping from Nginx to backend services:
+
+* `/api/alerts/*` → `alerts-service:3001`
+* `/api/user/*` → `user-service:3003/profile/*`
+* `/api/prometheus/*` → `prometheus:9090`
 
 // ---------------------------------------------------------------------------
 // 3. Components
@@ -420,7 +440,14 @@ Triggered on push / pull request to `main` or `master`.
 
 . `pnpm install --frozen-lockfile`
 . `pnpm biome ci .` — lint and format checks
-. `pnpm tsc --noEmit` — TypeScript type checking
+. `pnpm --filter shared run build` — compile the shared types package
+. `pnpm --filter alerts-service exec prisma generate && pnpm --filter alerts-service exec tsc --noEmit` — type-check alerts-service
+. `pnpm --filter user-service exec prisma generate && pnpm --filter user-service exec tsc --noEmit` — type-check user-service
+. `pnpm --filter frontend exec tsc --noEmit` — type-check frontend
+
+NOTE: alerts-service and user-service share the same `@prisma/client` in the pnpm
+store. Each `prisma generate` overwrites the other's models, so they must be
+type-checked sequentially, regenerating Prisma immediately before each check.
 
 === Publish — Docker Images
 
