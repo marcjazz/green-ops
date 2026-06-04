@@ -54,4 +54,4 @@ export interface ApiResponse<T> {
 	timestamp: string;
 }
 
-export * from './auth.js';
+export * from "./auth.js";

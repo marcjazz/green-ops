@@ -47,8 +47,11 @@ app.get("/alerts", async (_req, res) => {
 			orderBy: { createdAt: "desc" },
 		});
 		res.json({ success: true, data: alerts });
-	} catch (error: any) {
-		console.error("Error in GET /alerts:", error.message);
+	} catch (error) {
+		console.error(
+			"Error in GET /alerts:",
+			error instanceof Error ? error.message : error,
+		);
 		res.status(500).json({ success: false, error: "Failed to fetch alerts" });
 	}
 });
@@ -61,11 +64,11 @@ app.post("/alerts", async (req, res) => {
 			data: validated,
 		});
 		res.status(201).json({ success: true, data: alert });
-	} catch (error: any) {
+	} catch (error) {
 		res.status(400).json({
 			success: false,
 			error: "Invalid alert data",
-			details: error.message,
+			details: error instanceof Error ? error.message : String(error),
 		});
 	}
 });

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
+import type { Alert, UserProfile } from "shared";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -78,8 +79,16 @@ function formatDateTime(dateStr: string) {
 	});
 }
 
-function Dashboard({ alerts, profile }: { alerts: any[]; profile: any }) {
-	const [scrapeDurations, setScrapeDurations] = useState<any[]>([]);
+function Dashboard({
+	alerts,
+	profile,
+}: {
+	alerts: Alert[];
+	profile: UserProfile | null;
+}) {
+	const [scrapeDurations, setScrapeDurations] = useState<
+		Array<{ metric: { job: string }; value: [number, string] }>
+	>([]);
 
 	useEffect(() => {
 		apiClient
@@ -128,13 +137,11 @@ function Dashboard({ alerts, profile }: { alerts: any[]; profile: any }) {
 					</CardHeader>
 					<CardContent>
 						<div className="space-y-2">
-							{scrapeDurations.map((r: any) => {
+							{scrapeDurations.map((r) => {
 								const job = r.metric.job || "unknown";
 								const val = Number.parseFloat(r.value[1]);
 								const max = Math.max(
-									...scrapeDurations.map((s: any) =>
-										Number.parseFloat(s.value[1]),
-									),
+									...scrapeDurations.map((s) => Number.parseFloat(s.value[1])),
 									0.1,
 								);
 								const pct = Math.min((val / max) * 100, 100);
@@ -190,7 +197,7 @@ function Dashboard({ alerts, profile }: { alerts: any[]; profile: any }) {
 									</TableCell>
 								</TableRow>
 							) : (
-								alerts.map((alert: any) => (
+								alerts.map((alert: Alert) => (
 									<TableRow key={alert.id} className="cursor-pointer">
 										<TableCell className="font-medium">{alert.title}</TableCell>
 										<TableCell>{alert.metricName}</TableCell>
@@ -306,8 +313,8 @@ function Services() {
 
 function DashboardLayout() {
 	const auth = useAuth();
-	const [alerts, setAlerts] = useState<any[]>([]);
-	const [profile, setProfile] = useState<any>(null);
+	const [alerts, setAlerts] = useState<Alert[]>([]);
+	const [profile, setProfile] = useState<UserProfile | null>(null);
 	const [page, setPage] = useState<"dashboard" | "services">("dashboard");
 
 	useEffect(() => {

@@ -1,15 +1,14 @@
-import React, { type ReactNode } from 'react';
-import { AuthProvider } from 'react-oidc-context';
-import { userManager } from './userManager.js';
+import type React from "react";
+import type { ReactNode } from "react";
+import { AuthProvider } from "react-oidc-context";
+import { userManager } from "./userManager.js";
 
 interface AuthProviderWrapperProps {
-  children: ReactNode;
+	children: ReactNode;
 }
 
-export const AuthProviderWrapper: React.FC<AuthProviderWrapperProps> = ({ children }) => {
-  return (
-    <AuthProvider userManager={userManager}>
-      {children}
-    </AuthProvider>
-  );
+export const AuthProviderWrapper: React.FC<AuthProviderWrapperProps> = ({
+	children,
+}) => {
+	return <AuthProvider userManager={userManager}>{children}</AuthProvider>;
 };
