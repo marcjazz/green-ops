@@ -21,8 +21,8 @@ GreenOps is a cloud-native SaaS platform that monitors and visualizes energy
 consumption metrics. It demonstrates modern DevOps practices:
 
 * Microservices architecture
-* Docker containerization (current)
-* Kubernetes orchestration (planned)
+* Docker containerization
+* Kubernetes orchestration on Minikube
 * Observability with Prometheus + Grafana
 * Centralized authentication via Keycloak
 * CI/CD with GitHub Actions
@@ -480,12 +480,27 @@ Tags: `latest` (branch), `sha-<short>` (always), semver (tags).
 │   ├── frontend/               # React SPA (Vite)
 │   └── user-service/           # User profile REST API
 ├── infrastructure/
-│   └── docker/
-│       ├── certs/              # TLS certificates (gitignored)
-│       ├── compose.yml         # Docker Compose definition
-│       ├── nginx.conf          # Nginx reverse proxy config
-│       ├── prometheus.yml      # Prometheus scrape config
-│       └── realm.json          # Keycloak realm import
+│   ├── docker/
+│   │   ├── certs/              # TLS certificates (gitignored)
+│   │   ├── compose.yml         # Docker Compose definition
+│   │   ├── nginx.conf          # Nginx reverse proxy config (Docker)
+│   │   ├── prometheus.yml      # Prometheus scrape config (Docker)
+│   │   └── realm.json          # Keycloak realm import (Docker)
+│   └── k8s/
+│       ├── 00-namespace.yml    # greenops namespace
+│       ├── 01-secrets.yml      # Secret definitions (values from deploy.sh)
+│       ├── 02-configmaps.yml   # Placeholder (ConfigMaps created by deploy.sh)
+│       ├── 03-postgres.yml     # PostgreSQL + postgres-exporter
+│       ├── 04-keycloak.yml     # Keycloak (+ CORS config)
+│       ├── 05-prometheus.yml   # Prometheus
+│       ├── 06-grafana.yml      # Grafana
+│       ├── 07-alerts-service.yml  # Alert API
+│       ├── 08-user-service.yml    # User profile API
+│       ├── 09-frontend.yml     # Frontend (nginx + SPA)
+│       ├── deploy.sh           # One-command Minikube deployment
+│       ├── nginx.conf          # Nginx config (K8s version)
+│       ├── prometheus.yml      # Prometheus config (K8s version)
+│       └── realm.json          # Keycloak realm import (K8s version)
 ├── packages/
 │   └── shared/                 # Shared Zod schemas, JWT auth middleware
 ├── docs/
@@ -497,19 +512,224 @@ Tags: `latest` (branch), `sha-<short>` (always), semver (tags).
 ----
 
 // ---------------------------------------------------------------------------
-// 8. Future — Kubernetes
+// 8. Kubernetes
 // ---------------------------------------------------------------------------
-== Kubernetes (Planned)
+== Kubernetes (Minikube)
 
-The Kubernetes manifests are not yet part of this repository. They will be
-added under `infrastructure/k8s/` in a future iteration and will include:
+The project includes a complete Kubernetes deployment for Minikube under
+`infrastructure/k8s/`. It mirrors the Docker Compose architecture and uses
+the same remote images from GHCR.
 
-* Namespaces: `greenops-app`, `greenops-monitoring`
-* Deployments (2 replicas each): frontend, alerts-service, user-service
-* Services of type `ClusterIP` for internal communication
-* Ingress for external access
-* ConfigMaps for environment configuration
-* Secrets for database credentials and JWT keys
-* PersistentVolumeClaims for PostgreSQL data
-* HorizontalPodAutoscaler (CPU-based, 2–5 replicas)
-* Liveness / readiness probes on `/health`
+=== Architecture
+
+In the K8s setup, the Nginx reverse proxy runs as a container in the `frontend`
+pod (same image as Docker), with its config from `infrastructure/k8s/nginx.conf`
+mounted as a ConfigMap. The LoadBalancer service exposes it externally.
+
+=== Namespace
+
+All resources are deployed in a single namespace:
+
+[source,text]
+----
+greenops
+----
+
+=== Deployments
+
+[cols="1,1,1,1"]
+|===
+| Deployment         | Image                                | Port  | Readiness Probe
+| frontend           | ghcr.io/.../frontend:latest          | 443   | —
+| alerts-service     | ghcr.io/.../alerts-service:latest    | 3001  | `GET /health`
+| user-service       | ghcr.io/.../user-service:latest      | 3003  | `GET /health`
+| postgres           | postgres:16-alpine                   | 5432  | `pg_isready`
+| postgres-exporter  | prometheuscommunity/postgres-exporter | 9187  | —
+| keycloak           | quay.io/keycloak/keycloak:24.0       | 8080  | —
+| prometheus         | prom/prometheus                      | 9090  | —
+| grafana            | grafana/grafana                      | 3000  | —
+|===
+
+=== Services
+
+|===
+| Service            | Type         | Port(s)
+| frontend           | LoadBalancer | 443, 80
+| alerts-service     | ClusterIP    | 3001
+| user-service       | ClusterIP    | 3003
+| postgres           | ClusterIP    | 5432
+| postgres-exporter  | ClusterIP    | 9187
+| keycloak           | ClusterIP    | 8080
+| prometheus         | ClusterIP    | 9090
+| grafana            | ClusterIP    | 3000
+|===
+
+The `frontend` LoadBalancer is the sole external entry point. `minikube tunnel`
+routes the LoadBalancer IP to the host.
+
+=== ConfigMaps
+
+ConfigMaps are created from standalone K8s config files in `infrastructure/k8s/`
+(separate from the Docker versions in `infrastructure/docker/`):
+
+|===
+| ConfigMap          | Source File                        | Mount Path
+| `nginx-config`     | `infrastructure/k8s/nginx.conf`    | `/etc/nginx/conf.d/default.conf`
+| `prometheus-config` | `infrastructure/k8s/prometheus.yml` | `/etc/prometheus/prometheus.yml`
+| `keycloak-realm`   | `infrastructure/k8s/realm.json`    | `/opt/keycloak/data/import/realm.json`
+|===
+
+The nginx config (`infrastructure/k8s/nginx.conf`) routes by virtual host:
+
+|===
+| Hostname                    | Route               | Backend
+| `greenops.local`            | `/api/alerts/*`     | `alerts-service:3001`
+| `greenops.local`            | `/api/user/*`       | `user-service:3003`
+| `greenops.local`            | `/api/prometheus/*` | `prometheus:9090`
+| `greenops.local`            | `/` (static files)  | frontend SPA
+| `accounts.greenops.local`   | `/`                 | `keycloak:8080`
+| `monitor.greenops.local`    | `/`                 | `grafana:3000`
+|===
+
+=== Secrets
+
+|===
+| Secret              | Contents
+| `greenops-secrets`  | `postgres-user`, `postgres-password`, `postgres-db`, `grafana-client-secret`
+| `nginx-tls`         | `nginx.crt`, `nginx.key` (self-signed, generated at deploy time)
+|===
+
+==== TLS Certificates
+
+Unlike Docker (which persists certs in `infrastructure/docker/certs/`), K8s
+generates self-signed certificates at deploy time using `openssl` and stores
+them in a `kubernetes.io/tls` Secret. The certificates are never committed to
+the repository.
+
+=== Storage
+
+PostgreSQL uses a PersistentVolumeClaim:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: greenops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+----
+
+=== Keycloak CORS
+
+The frontend SPA (`https://greenops.local`) makes OIDC discovery requests to
+Keycloak (`https://accounts.greenops.local`), which is a cross-origin request.
+Keycloak is configured with CORS support:
+
+[source,yaml]
+----
+env:
+  - name: KC_HTTP_CORS_ALLOWED_ORIGINS
+    value: "https://greenops.local"
+  - name: KC_HTTP_CORS_ALLOWED_METHODS
+    value: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+  - name: KC_HTTP_CORS_ALLOWED_HEADERS
+    value: "Authorization,Content-Type,X-Requested-With,Origin"
+  - name: KC_HTTP_CORS_EXPOSED_HEADERS
+    value: "WWW-Authenticate"
+----
+
+=== Deployment
+
+The `deploy.sh` script handles the full deployment:
+
+[source,bash]
+----
+bash infrastructure/k8s/deploy.sh
+----
+
+What the script does:
+
+. Generates self-signed TLS certificates
+. Starts Minikube if needed (Docker driver, 2 CPU, 4 GB RAM)
+. Creates the `greenops` namespace
+. Creates ConfigMaps from `infrastructure/k8s/*` config files
+. Creates a TLS Secret for nginx
+. Applies all manifests in order (PostgreSQL → Keycloak → Prometheus → services → frontend)
+. Waits for all pods to reach `Ready` state
+. Prints connection instructions
+
+==== Post-deployment
+
+[source,bash]
+----
+# Start the LoadBalancer tunnel
+minikube tunnel
+
+# Get the assigned LoadBalancer IP
+kubectl get svc frontend -n greenops
+# NAME       TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)
+# frontend   LoadBalancer   10.107.80.138  10.107.80.138   443:31109/TCP,80:31448/TCP
+
+# Add to /etc/hosts (use the EXTERNAL-IP from above)
+# 10.107.80.138  greenops.local
+# 10.107.80.138  accounts.greenops.local
+# 10.107.80.138  monitor.greenops.local
+----
+
+==== Verification
+
+[source,bash]
+----
+# Check all pods are running
+kubectl get pods -n greenops
+
+# Test the frontend SPA
+curl -sk https://greenops.local/ | head -5
+# <!DOCTYPE html><html lang="en">...
+
+# Test API proxy (expects JWT — will return auth error)
+curl -sk https://greenops.local/api/alerts/alerts
+# {"success":false,"error":"Authorization header missing"}
+
+# Test Prometheus through proxy
+curl -sk https://greenops.local/api/prometheus/-/ready
+# Prometheus Server is Ready.
+
+# Test Keycloak OIDC discovery
+curl -sk https://accounts.greenops.local/realms/greenops/.well-known/openid-configuration
+# {"issuer":"https://accounts.greenops.local/realms/greenops",...}
+
+# Test CORS preflight
+curl -sk -X OPTIONS -H "Origin: https://greenops.local" \
+  -H "Access-Control-Request-Method: GET" \
+  https://accounts.greenops.local/realms/greenops/.well-known/openid-configuration
+# Access-Control-Allow-Origin: https://greenops.local
+----
+
+=== Differences from Docker
+
+|===
+| Aspect              | Docker                               | K8s
+| Config files        | `infrastructure/docker/`             | `infrastructure/k8s/` (separate tracking)
+| Certificates        | Persistent in `certs/` (committed)   | Generated at deploy time (not committed)
+| Entry point         | `compose.yml`                        | `deploy.sh`
+| Frontend service    | Port mapping in compose              | LoadBalancer + `minikube tunnel`
+| TLS termination     | Nginx in frontend container          | Same (config via ConfigMap)
+| Service discovery   | Docker DNS (service name)            | K8s DNS (same name, same namespace)
+| PostgreSQL data     | Named volume `postgres_data`         | PVC `postgres-pvc` (1 GiB)
+|===
+
+=== Default Credentials
+
+|===
+| Service  | Username | Password
+| Keycloak | `admin`  | `admin`
+| Keycloak | `marco.kuidja` | `user1password`
+| Grafana  | OIDC     | (login via Keycloak)
+|===
