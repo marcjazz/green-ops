@@ -55,7 +55,10 @@ async function queryPrometheus(query: string): Promise<number | null> {
 			data?: { result?: Array<{ value: [number, string] }> };
 		} = await response.json();
 		if (data.status !== "success" || !data.data?.result?.length) return null;
-		return Number.parseFloat(data.data.result[0].value[1]);
+		const first = data.data.result[0];
+		if (!first) return null;
+		const val = first.value[1];
+		return val ? Number.parseFloat(val) : null;
 	} catch (error) {
 		console.error("Prometheus query error:", error);
 		return null;
