@@ -1,0 +1,488 @@
+= GreenOps Platform — Architecture Document
+:toc: left
+:toclevels: 4
+:icons: font
+:sectnums:
+:source-highlighter: pygments
+
+// ---------------------------------------------------------------------------
+// Metadata
+// ---------------------------------------------------------------------------
+Authors: Student 1, Student 2, Student 3
+Version: 1.0
+Date: 2026-06
+
+// ---------------------------------------------------------------------------
+// 1. Project Overview
+// ---------------------------------------------------------------------------
+== Project Overview
+
+GreenOps is a cloud-native SaaS platform that monitors and visualizes energy
+consumption metrics. It demonstrates modern DevOps practices:
+
+* Microservices architecture
+* Docker containerization (current)
+* Kubernetes orchestration (planned)
+* Observability with Prometheus + Grafana
+* Centralized authentication via Keycloak
+* CI/CD with GitHub Actions
+* Multi-schema PostgreSQL database
+
+=== Objectives
+
+* Collect and display energy metrics
+* Manage user profiles and preferences
+* Generate alerts based on Prometheus queries
+* Provide a production-ready, containerized infrastructure
+* Enable monitoring and observability out of the box
+
+// ---------------------------------------------------------------------------
+// 2. Global Architecture
+// ---------------------------------------------------------------------------
+== Global Architecture
+
+[horizontal]
+Frontend:: React SPA served by Nginx
+API Gateway:: Nginx reverse proxy (single entry point)
+Identity Provider:: Keycloak (OIDC / JWT)
+Backend Services:: alerts-service, user-service (Node.js + Express)
+Database:: PostgreSQL (multi-schema)
+Monitoring:: Prometheus (metrics), Grafana (dashboards)
+
+=== Architecture Diagram
+
+[graphviz, infra-arch, svg]
+....
+digraph GreenOps {
+    rankdir=TB;
+    splines=ortho;
+    node [shape=box, style=rounded, fontname="monospace"];
+
+    subgraph cluster_external {
+        label="External (browser)";
+        color=lightgrey;
+        Browser [label="User Browser"];
+    }
+
+    subgraph cluster_infra {
+        label="Docker Compose — greenops.local";
+        color=lightblue;
+
+        Nginx [label="Nginx\n(Reverse Proxy)"];
+        Frontend [label="Frontend\n(React SPA)"];
+        Keycloak [label="Keycloak\n(Identity Provider)"];
+        Grafana [label="Grafana\n(Dashboards)"];
+
+        subgraph cluster_services {
+            label="Internal Services";
+            color=beige;
+            Alerts [label="alerts-service\n(Alert API)"];
+            User [label="user-service\n(User API)"];
+        }
+
+        Prometheus [label="Prometheus\n(Metrics)"];
+        PgExporter [label="postgres-exporter"];
+        Postgres [label="PostgreSQL"];
+
+        Browser -> Nginx [label="HTTPS :443"];
+
+        Nginx -> Frontend [style=dashed, label="static files"];
+        Nginx -> Keycloak [label="/auth"];
+        Nginx -> Grafana [label="/grafana"];
+        Nginx -> Alerts [label="/api/alerts"];
+        Nginx -> User [label="/api/user"];
+        Nginx -> Prometheus [label="/api/prometheus"];
+
+        Alerts -> Postgres;
+        User -> Postgres;
+        PgExporter -> Postgres;
+
+        Prometheus -> Alerts [label="scrape :3001/metrics"];
+        Prometheus -> User [label="scrape :3003/metrics"];
+        Prometheus -> Keycloak [label="scrape :8080/metrics"];
+        Prometheus -> PgExporter [label="scrape :9187/metrics"];
+        Prometheus -> Prometheus [label="self-scrape"];
+
+        Alerts -> Prometheus [label="query API"];
+    }
+}
+....
+
+=== Request Flow (authenticated user)
+
+. Browser loads the SPA from Nginx (`https://greenops.local`).
+. Unauthenticated users see a "Sign in with Keycloak" button.
+. Clicking Sign In redirects to Keycloak at `https://accounts.greenops.local`.
+. After login, Keycloak issues an OIDC JWT (`access_token`).
+. The SPA includes the JWT in the `Authorization: Bearer` header on every API call.
+. Nginx proxies API calls to the appropriate backend service.
++* `/api/alerts/*` → `alerts-service:3001/alerts/*`
++* `/api/user/*` → `user-service:3003/profile/*`
++* `/api/prometheus/*` → `prometheus:9090/*`
+. Each backend service validates the JWT via the Keycloak JWKS endpoint.
+. If valid, the request is processed; otherwise a `401` or `403` is returned.
+
+// ---------------------------------------------------------------------------
+// 3. Components
+// ---------------------------------------------------------------------------
+== Component Roles
+
+=== Postgres
+
+[horizontal]
+Image:: `postgres:16-alpine`
+Port:: `5432` (internal only)
+Purpose:: Central database for all services.
+
+Uses a multi-schema design within a single database:
+
+* schema `users` — `UserProfile` table (user-service)
+* schema `alerts` — `Alert` table (alerts-service)
+
+Persistent volume `postgres_data` ensures data survives restarts.
+
+=== Keycloak
+
+[horizontal]
+Image:: `quay.io/keycloak/keycloak:24.0`
+Port:: `8080` (internal only)
+Purpose:: OpenID Connect (OIDC) identity provider.
+
+Key features:
+
+* Exposed via Nginx at `https://accounts.greenops.local`.
+* Pre-configured realm `greenops` imported from `infrastructure/docker/realm.json`.
+* Clients: `greenops-frontend` (public) and `greenops-grafana` (confidential).
+* Metrics enabled (`KC_METRICS_ENABLED=true`) for Prometheus scraping.
+* JWT signing keys are fetched by backends via the JWKS URI.
+
+=== Frontend
+
+[horizontal]
+Build:: Vite + React 19 (TypeScript)
+Docker:: `apps/frontend/Dockerfile` (multi-stage, served by Nginx)
+
+The SPA is built at image creation time and served as static files by Nginx.
+It uses `react-oidc-context` for Keycloak authentication and Axios for API
+calls. The JWT is automatically attached by a request interceptor.
+
+Pages:
+
+* **Dashboard** — shows alert count, theme, Prometheus scrape durations, and
+  recent alerts in a table.
+* **Services** — displays live up/down status of all infrastructure components
+  by querying the Prometheus `up` metric.
+
+=== alerts-service
+
+[horizontal]
+Language:: Node.js + Express 5 (TypeScript)
+Port:: `3001`
+Dockerfile:: `apps/alerts-service/Dockerfile`
+
+REST API for managing alerts. Exposes the following endpoints:
+
+* `GET /alerts` — list all alerts (most recent first)
+* `POST /alerts` — create a new alert
+* `PATCH /alerts/:id/read` — mark an alert as read
+* `GET /health` — health check
+* `GET /metrics` — Prometheus metrics (via `prom-client`)
+
+It also runs a background monitor (`src/monitor.ts`) that:
+
+. Queries Prometheus every 30 seconds for configured alert rules.
+. If a threshold is breached, creates an `Alert` record in PostgreSQL.
+. When the metric recovers, marks pending alerts as read.
+
+Alert rules include service-down detection and high scrape duration warnings.
+
+=== user-service
+
+[horizontal]
+Language:: Node.js + Express 5 (TypeScript)
+Port:: `3003`
+Dockerfile:: `apps/user-service/Dockerfile`
+
+REST API for user profiles. Exposes the following endpoints:
+
+* `GET /profile` — fetch or auto-create the authenticated user's profile
+* `PATCH /profile` — update profile fields (theme, notifications, etc.)
+* `GET /health` — health check
+* `GET /metrics` — Prometheus metrics (via `prom-client`)
+
+Profiles are keyed by the `sub` claim from the JWT (Keycloak user ID).
+If a profile is not found, the service attempts a lookup by email first to
+handle Keycloak user-ID changes gracefully.
+
+=== Nginx
+
+[horizontal]
+Image:: `nginx:alpine` (for the SPA) + config from `infrastructure/docker/nginx.conf`
+Ports:: `80:80`, `443:443`
+
+Serves three responsibilities:
+
+* **Static file server** — serves the built React SPA at `/`.
+* **Reverse proxy** — routes API paths to backend services.
+* **TLS termination** — terminates HTTPS with self-signed certificates.
+
+Three virtual hosts:
+
+|===
+| Server Name             | Purpose
+| `greenops.local`        | Frontend + API
+| `accounts.greenops.local` | Keycloak
+| `monitor.greenops.local`  | Grafana
+|===
+
+=== Prometheus
+
+[horizontal]
+Image:: `prom/prometheus`
+Port:: `9090` (internal only)
+Config:: `infrastructure/docker/prometheus.yml`
+
+Scrapes the following targets every 15 seconds:
+
+|===
+| Job                    | Target
+| `prometheus`           | `localhost:9090`
+| `alerts-service`       | `alerts-service:3001`
+| `user-service`         | `user-service:3003`
+| `postgres-exporter`    | `postgres-exporter:9187`
+| `keycloak`             | `keycloak:8080/metrics`
+|===
+
+The frontend queries Prometheus through the Nginx proxy for:
+
+* `scrape_duration_seconds` — displayed as bar charts on the Dashboard.
+* `up` — used by the Services page for live status indicators.
+
+=== Grafana
+
+[horizontal]
+Image:: `grafana/grafana`
+Port:: `3000` (internal only)
+Auth:: OIDC via Keycloak (`greenops-grafana` client)
+
+Configured with generic OAuth using Keycloak as the provider.
+Grafana is accessed at `https://monitor.greenops.local`.
+
+=== postgres-exporter
+
+[horizontal]
+Image:: `prometheuscommunity/postgres-exporter:latest`
+Port:: `9187` (internal only)
+Purpose:: Exposes PostgreSQL metrics to Prometheus.
+
+// ---------------------------------------------------------------------------
+// 4. Getting Started — Docker
+// ---------------------------------------------------------------------------
+== Docker Infrastructure
+
+=== Prerequisites
+
+* Docker Engine 24+ and Docker Compose v2
+* `openssl` (to generate certificates)
+* `pnpm` (for local development outside Docker)
+
+.Run the following from the repository root:
+[source,bash]
+----
+# 1. Generate self-signed TLS certificates (one time only)
+mkdir -p infrastructure/docker/certs
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout infrastructure/docker/certs/nginx.key \
+  -out    infrastructure/docker/certs/nginx.crt \
+  -subj  "/CN=greenops.local" \
+  -addext "subjectAltName=DNS:greenops.local,DNS:accounts.greenops.local,DNS:monitor.greenops.local"
+
+# 2. Start all services
+docker compose -f infrastructure/docker/compose.yml up -d --build
+
+# 3. Check that everything is running
+docker compose -f infrastructure/docker/compose.yml ps
+
+# 4. Follow logs
+docker compose -f infrastructure/docker/compose.yml logs -f
+----
+
+=== Hosts File
+
+Add the following entries to `/etc/hosts`:
+
+[source,text]
+----
+127.0.0.1  greenops.local
+127.0.0.1  accounts.greenops.local
+127.0.0.1  monitor.greenops.local
+----
+
+=== Access Points
+
+|===
+| Service       | URL
+| Frontend      | `https://greenops.local`
+| Keycloak      | `https://accounts.greenops.local`
+| Grafana       | `https://monitor.greenops.local`
+|===
+
+=== Default Credentials
+
+|===
+| Service  | Username | Password
+| Keycloak | `admin`  | `admin`
+| Grafana  | OIDC     | (login via Keycloak)
+|===
+
+=== Useful Commands
+
+[source,bash]
+----
+# Rebuild a single service
+docker compose -f infrastructure/docker/compose.yml up -d --build <service>
+
+# View logs for a service
+docker compose -f infrastructure/docker/compose.yml logs -f <service>
+
+# Stop everything
+docker compose -f infrastructure/docker/compose.yml down
+
+# Stop and remove volumes (fresh start)
+docker compose -f infrastructure/docker/compose.yml down -v
+
+# Run a command inside a container
+docker compose -f infrastructure/docker/compose.yml exec <service> <command>
+----
+
+// ---------------------------------------------------------------------------
+// 5. Environment Variables
+// ---------------------------------------------------------------------------
+== Configuration
+
+=== Environment Variables
+
+|===
+| Variable             | Default                          | Service(s)
+| `DATABASE_URL`       | `postgresql://greenops:...`      | alerts-service, user-service
+| `PORT`               | `3001` / `3003`                  | alerts-service, user-service
+| `KEYCLOAK_JWKS_URI`  | `http://keycloak:8080/...`       | alerts-service, user-service
+| `PROMETHEUS_URL`     | `http://prometheus:9090`         | alerts-service
+|===
+
+=== Database Schemas
+
+Both services connect to the same `greenops_db` database using distinct
+PostgreSQL schemas:
+
+[source,sql]
+----
+-- Schema: users (user-service)
+CREATE SCHEMA IF NOT EXISTS users;
+
+CREATE TABLE users."UserProfile" (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "keycloakId"    TEXT NOT NULL UNIQUE,
+    email           TEXT NOT NULL UNIQUE,
+    theme           TEXT NOT NULL DEFAULT 'light',
+    notifications   BOOLEAN NOT NULL DEFAULT true,
+    "dashboardLayout" JSONB,
+    "createdAt"     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    "updatedAt"     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Schema: alerts (alerts-service)
+CREATE SCHEMA IF NOT EXISTS alerts;
+
+CREATE TYPE alerts."Severity" AS ENUM ('info', 'warning', 'critical');
+
+CREATE TABLE alerts."Alert" (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title           TEXT NOT NULL,
+    description     TEXT NOT NULL,
+    severity        alerts."Severity" NOT NULL DEFAULT 'info',
+    "metricName"    TEXT NOT NULL,
+    "metricValue"   DOUBLE PRECISION NOT NULL,
+    threshold       DOUBLE PRECISION NOT NULL,
+    "isRead"        BOOLEAN NOT NULL DEFAULT false,
+    "createdAt"     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+----
+
+// ---------------------------------------------------------------------------
+// 6. CI/CD
+// ---------------------------------------------------------------------------
+== CI/CD Pipelines
+
+=== CI — Code Quality
+
+Triggered on push / pull request to `main` or `master`.
+
+. `pnpm install --frozen-lockfile`
+. `pnpm biome ci .` — lint and format checks
+. `pnpm tsc --noEmit` — TypeScript type checking
+
+=== Publish — Docker Images
+
+Triggered on push to `main` / `master` or tag matching `v*`.
+
+Publishes three images to GitHub Container Registry (GHCR):
+
+|===
+| Image                            | Dockerfile
+| `ghcr.io/<org>/green-ops/frontend` | `apps/frontend/Dockerfile`
+| `ghcr.io/<org>/green-ops/alerts-service` | `apps/alerts-service/Dockerfile`
+| `ghcr.io/<org>/green-ops/user-service` | `apps/user-service/Dockerfile`
+|===
+
+Tags: `latest` (branch), `sha-<short>` (always), semver (tags).
+
+// ---------------------------------------------------------------------------
+// 7. Repository Structure
+// ---------------------------------------------------------------------------
+== Repository Layout
+
+[source,text]
+----
+.
+├── .github/workflows/
+│   ├── ci.yml                  # Lint, type-check
+│   └── publish.yml             # Build & push Docker images to GHCR
+├── apps/
+│   ├── alerts-service/         # Alert REST API + Prometheus monitor
+│   ├── frontend/               # React SPA (Vite)
+│   └── user-service/           # User profile REST API
+├── infrastructure/
+│   └── docker/
+│       ├── certs/              # TLS certificates (gitignored)
+│       ├── compose.yml         # Docker Compose definition
+│       ├── nginx.conf          # Nginx reverse proxy config
+│       ├── prometheus.yml      # Prometheus scrape config
+│       └── realm.json          # Keycloak realm import
+├── packages/
+│   └── shared/                 # Shared Zod schemas, JWT auth middleware
+├── docs/
+│   └── architecture.adoc       # This document
+├── pnpm-workspace.yaml         # Monorepo workspace config
+├── package.json                # Root scripts (lint, build, type-check)
+├── tsconfig.json               # Base TypeScript config
+└── biome.json                  # Biome (linter + formatter) config
+----
+
+// ---------------------------------------------------------------------------
+// 8. Future — Kubernetes
+// ---------------------------------------------------------------------------
+== Kubernetes (Planned)
+
+The Kubernetes manifests are not yet part of this repository. They will be
+added under `infrastructure/k8s/` in a future iteration and will include:
+
+* Namespaces: `greenops-app`, `greenops-monitoring`
+* Deployments (2 replicas each): frontend, alerts-service, user-service
+* Services of type `ClusterIP` for internal communication
+* Ingress for external access
+* ConfigMaps for environment configuration
+* Secrets for database credentials and JWT keys
+* PersistentVolumeClaims for PostgreSQL data
+* HorizontalPodAutoscaler (CPU-based, 2–5 replicas)
+* Liveness / readiness probes on `/health`
