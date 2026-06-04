@@ -6,6 +6,7 @@ import express from "express";
 import helmet from "helmet";
 import { CreateAlertSchema, authenticateJWT } from "shared";
 import { startMonitor } from "./monitor.js";
+import client from "prom-client";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -21,6 +22,14 @@ app.use(express.json());
 app.use((req, _res, next) => {
 	console.log(`${req.method} ${req.url}`);
 	next();
+});
+
+// Prometheus metrics endpoint (unauthenticated)
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+app.get("/metrics", async (_req, res) => {
+	res.set("Content-Type", register.contentType);
+	res.end(await register.metrics());
 });
 
 // Protect all routes
