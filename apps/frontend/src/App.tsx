@@ -68,8 +68,8 @@ const SERVICES = [
 	},
 ];
 
-function formatDateTime(dateStr: string) {
-	const d = new Date(dateStr);
+function formatDateTime(date: Date | string) {
+	const d = new Date(date);
 	return d.toLocaleString("fr-FR", {
 		day: "2-digit",
 		month: "short",
