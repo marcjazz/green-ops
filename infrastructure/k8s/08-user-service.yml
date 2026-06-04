@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: greenops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: ghcr.io/marcjazz/green-ops/user-service:latest
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://greenops:greenops_password@postgres:5432/greenops_db?schema=users"
+            - name: PORT
+              value: "3003"
+            - name: KEYCLOAK_JWKS_URI
+              value: "http://keycloak:8080/realms/greenops/protocol/openid-connect/certs"
+          ports:
+            - containerPort: 3003
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: greenops
+spec:
+  selector:
+    app: user-service
+  ports:
+    - port: 3003
+      targetPort: 3003

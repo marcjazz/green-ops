@@ -1,0 +1,2 @@
+# ConfigMaps are created via deploy.sh using --from-file on the K8s-specific configs
+# in infrastructure/k8s/ (separate from infrastructure/docker/ versions).

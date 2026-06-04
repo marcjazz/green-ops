@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alerts-service
+  namespace: greenops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alerts-service
+  template:
+    metadata:
+      labels:
+        app: alerts-service
+    spec:
+      containers:
+        - name: alerts-service
+          image: ghcr.io/marcjazz/green-ops/alerts-service:latest
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://greenops:greenops_password@postgres:5432/greenops_db?schema=alerts"
+            - name: PORT
+              value: "3001"
+            - name: KEYCLOAK_JWKS_URI
+              value: "http://keycloak:8080/realms/greenops/protocol/openid-connect/certs"
+            - name: PROMETHEUS_URL
+              value: "http://prometheus:9090"
+          ports:
+            - containerPort: 3001
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alerts-service
+  namespace: greenops
+spec:
+  selector:
+    app: alerts-service
+  ports:
+    - port: 3001
+      targetPort: 3001
