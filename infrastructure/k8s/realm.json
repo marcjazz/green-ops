@@ -8,6 +8,7 @@
 			"enabled": true,
 			"protocol": "openid-connect",
 			"publicClient": true,
+			"directAccessGrantsEnabled": true,
 			"redirectUris": [
 				"https://greenops.local/*",
 				"https://greenops.local/",
@@ -41,6 +42,22 @@
 		}
 	],
 	"users": [
+		{
+			"username": "admin",
+			"email": "admin@greenops.local",
+			"firstName": "Admin",
+			"lastName": "User",
+			"enabled": true,
+			"emailVerified": true,
+			"credentials": [
+				{
+					"type": "password",
+					"value": "admin"
+				}
+			],
+			"realmRoles": ["Admin"],
+			"requiredActions": []
+		},
 		{
 			"username": "marco.kuidja",
 			"email": "marco.kuidja@greenops.local",
