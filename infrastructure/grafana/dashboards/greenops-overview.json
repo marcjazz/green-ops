@@ -402,7 +402,7 @@
 		},
 		{
 			"id": 12,
-			"title": "Keycloak Requests",
+			"title": "Keycloak CPU & Threads",
 			"type": "timeseries",
 			"gridPos": { "h": 6, "w": 16, "x": 0, "y": 24 },
 			"options": {
@@ -411,22 +411,43 @@
 			},
 			"fieldConfig": {
 				"defaults": {
-					"unit": "reqps",
 					"custom": {
 						"lineInterpolation": "smooth",
 						"showPoints": "never"
 					}
 				},
-				"overrides": []
+				"overrides": [
+					{
+						"matcher": { "id": "byName", "options": "Live Threads" },
+						"properties": [
+							{ "id": "unit", "value": "short" },
+							{ "id": "custom.axisPlacement", "value": "right" },
+							{ "id": "custom.axisLabel", "value": "Threads" }
+						]
+					},
+					{
+						"matcher": { "id": "byName", "options": "CPU Usage" },
+						"properties": [
+							{ "id": "unit", "value": "percentunit" },
+							{ "id": "custom.axisPlacement", "value": "left" },
+							{ "id": "custom.axisLabel", "value": "CPU" }
+						]
+					}
+				]
 			},
 			"targets": [
 				{
-					"expr": "rate(http_server_requests_seconds_count{job=\"keycloak\"}[1m])",
-					"legendFormat": "Requests/s",
+					"expr": "system_cpu_usage{job=\"keycloak\"}",
+					"legendFormat": "CPU Usage",
 					"refId": "A"
+				},
+				{
+					"expr": "jvm_threads_live_threads{job=\"keycloak\"}",
+					"legendFormat": "Live Threads",
+					"refId": "B"
 				}
 			],
-			"description": "Keycloak HTTP request rate"
+			"description": "Keycloak system CPU usage and JVM live threads"
 		}
 	],
 	"schemaVersion": 39,

@@ -76,6 +76,7 @@ services:
     image: nginx/nginx-prometheus-exporter:latest
     command:
       - "--nginx.scrape-uri=http://nginx:8081/stub_status"
+    restart: unless-stopped
     depends_on:
       - nginx
 
