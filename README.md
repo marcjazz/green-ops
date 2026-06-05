@@ -374,17 +374,31 @@ greenops
 
 ## Deployments
 
-| Deployment         | Image                                         | Port | Probes |
-| ------------------ | --------------------------------------------- | ---- | ------ |
-| frontend           | ghcr.io/marcjazz/green-ops/frontend:latest    | 443  | —      |
-| alerts-service     | ghcr.io/marcjazz/green-ops/alerts-service:latest | 3001 | /health |
-| user-service       | ghcr.io/marcjazz/green-ops/user-service:latest   | 3003 | /health |
-| postgres           | postgres:16-alpine                            | 5432 | pg_isready |
-| redis              | redis:7-alpine                                | 6379 | redis-cli ping |
-| postgres-exporter  | prometheuscommunity/postgres-exporter         | 9187 | —      |
-| keycloak           | quay.io/keycloak/keycloak:24.0                | 8080 | —      |
-| prometheus         | prom/prometheus                               | 9090 | —      |
-| grafana            | grafana/grafana                               | 3000 | —      |
+| Deployment         | Image                                         | Port | Replicas | Probes |
+| ------------------ | --------------------------------------------- | ---- | -------- | ------ |
+| frontend           | ghcr.io/marcjazz/green-ops/frontend:latest    | 443  | 2        | —      |
+| alerts-service     | ghcr.io/marcjazz/green-ops/alerts-service:latest | 3001 | 2      | /health |
+| user-service       | ghcr.io/marcjazz/green-ops/user-service:latest   | 3003 | 2    | /health |
+| postgres           | postgres:16-alpine                            | 5432 | 1      | pg_isready |
+| redis              | redis:7-alpine                                | 6379 | 1      | redis-cli ping |
+| postgres-exporter  | prometheuscommunity/postgres-exporter         | 9187 | 1      | —      |
+| keycloak           | quay.io/keycloak/keycloak:24.0                | 8080 | 1      | —      |
+| prometheus         | prom/prometheus                               | 9090 | 1      | —      |
+| grafana            | grafana/grafana                               | 3000 | 1      | —      |
+
+**Note**: Replicas shown are baseline values. Critical services (frontend, alerts-service, user-service) can scale dynamically from2-5 replicas via HPA based on resource utilization.
+
+---
+
+## Horizontal Pod Autoscalers
+
+| HPA                  | Target Deployment   | Min | Max | CPU Target | Memory Target |
+| -------------------- | ------------------- | --- | --- | ---------- | ------------- |
+| alerts-service-hpa   | alerts-service      | 2   | 5   | 70%        | 80%           |
+| user-service-hpa     | user-service        | 2   | 5   | 70%        | 80%           |
+| frontend-hpa         | frontend            | 2   | 5   | 70%        | 80%           |
+
+HPA automatically scales pods based on resource utilization to maintain performance under varying loads.
 
 ---
 
@@ -476,15 +490,19 @@ Prerequisites:
 
 The platform ensures resilience through:
 
-* Multiple replicas
+* Multiple replicas (baseline: 2 replicas for critical services)
 * Kubernetes self-healing
 * Readiness probes
 * Liveness probes
 * Automatic restart mechanisms
+* Horizontal Pod Autoscaler for dynamic scaling
+
+Critical services (frontend, alerts-service, user-service) run with a minimum of 2 replicas to ensure high availability.
 
 Example:
 
 ```yaml
+replicas: 2
 livenessProbe:
   httpGet:
     path: /health
@@ -495,15 +513,105 @@ livenessProbe:
 
 # 12. Horizontal Scaling
 
-Horizontal Pod Autoscaler is configured.
+## Horizontal Pod Autoscaler (HPA)
 
-Example:
+Horizontal Pod Autoscaler automatically scales application pods based on CPU and memory utilization, ensuring optimal resource usage and performance.
+
+### Configuration
+
+HPA is configured for all critical services with the following parameters:
+
+| Service          | Min Replicas | Max Replicas | CPU Threshold | Memory Threshold |
+| ---------------- | ------------ | ------------ | ------------- | ----------------- |
+| alerts-service   | 2            | 5            | 70%           | 80%               |
+| user-service     | 2            | 5            | 70%           | 80%               |
+| frontend         | 2            | 5            | 70%           | 80%               |
+
+### HPA Manifests
+
+HPA configurations are defined in:
+
+```text
+infrastructure/k8s/
+├── 11-hpa-alerts.yml
+├── 12-hpa-user.yml
+└── 13-hpa-frontend.yml
+```
+
+Example HPA configuration:
 
 ```yaml
-minReplicas: 2
-maxReplicas: 5
-targetCPUUtilizationPercentage: 70
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: alerts-service-hpa
+  namespace: greenops
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: alerts-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
 ```
+
+### Resource Requirements
+
+All deployments include resource requests and limits to ensure proper scheduling and HPA functionality:
+
+```yaml
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+```
+
+### Prerequisites
+
+HPA requires the Metrics Server to be installed in the cluster:
+
+```bash
+# Enable metrics-server addon in Minikube
+minikube addons enable metrics-server
+```
+
+### Verification
+
+Check HPA status:
+
+```bash
+# List all HPAs
+kubectl get hpa -n greenops
+
+# Detailed HPA information
+kubectl describe hpa alerts-service-hpa -n greenops
+
+# Watch HPA scaling in real-time
+kubectl get hpa -n greenops -w
+```
+
+### Scaling Behavior
+
+* **Scale Up**: Automatically triggered when CPU utilization exceeds 70% for sustained periods
+* **Scale Down**: Gradual scale-down occurs when resource usage drops below threshold
+* **Cooldown**: Default stabilization window prevents rapid scaling fluctuations
+* **Minimum Replicas**: Always maintains at least 2 replicas for high availability
 
 ---
 
@@ -576,7 +684,17 @@ The script:
 4. Creates ConfigMaps from `infrastructure/k8s/` config files
 5. Creates a TLS Secret with the generated certificates
 6. Applies all Kubernetes manifests
-7. Waits for all pods to reach `Ready` state
+7. Applies Horizontal Pod Autoscaler configurations
+8. Waits for all pods to reach `Ready` state
+
+### Enable Metrics Server
+
+HPA requires the Metrics Server to be running. Enable it after deployment:
+
+```bash
+# Enable metrics-server addon (Minikube)
+minikube addons enable metrics-server
+```
 
 ### Post-deployment
 
@@ -596,8 +714,16 @@ kubectl get svc frontend -n greenops
 ### Verify
 
 ```bash
+# Check pods
 kubectl get pods -n greenops
+
+# Check services
 kubectl get svc -n greenops
+
+# Check Horizontal Pod Autoscalers
+kubectl get hpa -n greenops
+
+# Test application
 curl -sk https://greenops.local/
 ```
 
@@ -618,6 +744,13 @@ kubectl port-forward -n greenops service/frontend 8443:443
 
 # Reload Prometheus config without restarting
 kubectl exec -n greenops deployment/prometheus -- kill -HUP 1
+
+# Check HPA status and metrics
+kubectl get hpa -n greenops
+kubectl describe hpa alerts-service-hpa -n greenops
+
+# Watch HPA scaling
+kubectl get hpa -n greenops -w
 
 # Delete everything
 kubectl delete namespace greenops --force --grace-period=0

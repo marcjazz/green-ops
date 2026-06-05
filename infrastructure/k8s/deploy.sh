@@ -87,6 +87,11 @@ kubectl apply -f "$SCRIPT_DIR/07-alerts-service.yml"
 kubectl apply -f "$SCRIPT_DIR/08-user-service.yml"
 kubectl apply -f "$SCRIPT_DIR/09-frontend.yml"
 
+echo "=== Applying Horizontal Pod Autoscalers ==="
+kubectl apply -f "$SCRIPT_DIR/11-hpa-alerts.yml"
+kubectl apply -f "$SCRIPT_DIR/12-hpa-user.yml"
+kubectl apply -f "$SCRIPT_DIR/13-hpa-frontend.yml"
+
 echo "=== Waiting for pods to be ready (this may take a few minutes) ==="
 kubectl wait --for=condition=Ready pods --all -n "$NAMESPACE" --timeout=300s || true
 
