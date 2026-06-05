@@ -1,0 +1,23 @@
+.btn-primary {
+  --tw-bg-opacity: 1;
+  background-color: rgb(22 163 74 / var(--tw-bg-opacity)) !important;
+  --tw-border-opacity: 1;
+  border-color: rgb(22 163 74 / var(--tw-border-opacity)) !important;
+  color: #fff !important;
+}
+.btn-primary:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(21 128 61 / var(--tw-bg-opacity)) !important;
+  --tw-border-opacity: 1;
+  border-color: rgb(21 128 61 / var(--tw-border-opacity)) !important;
+}
+.btn-primary:focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(22 163 74 / var(--tw-ring-opacity)) !important;
+}
+a {
+  color: #16a34a !important;
+}
+a:hover {
+  color: #15803d !important;
+}
