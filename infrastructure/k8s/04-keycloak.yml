@@ -60,9 +60,6 @@ spec:
             - name: theme
               mountPath: /opt/keycloak/themes/greenops/common/resources/js/main.js
               subPath: main.js
-            - name: theme
-              mountPath: /opt/keycloak/themes/greenops/common/resources/js/split/911-4e9cc94ab88075badbbf.js
-              subPath: 911-4e9cc94ab88075badbbf.js
       volumes:
         - name: realm-config
           configMap:

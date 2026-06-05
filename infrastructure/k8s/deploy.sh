@@ -50,8 +50,7 @@ kubectl create configmap keycloak-theme \
   --from-file="$THEME_DIR/common/resources/css/overrides.css" \
   --from-file="$THEME_DIR/common/resources/js/runtime.js" \
   --from-file="$THEME_DIR/common/resources/js/main.js" \
-  --from-file="$THEME_DIR/common/resources/js/split/911-4e9cc94ab88075badbbf.js" \
-  --dry-run=client -o yaml | kubectl apply -f -
+  -o yaml --dry-run=client | kubectl apply --server-side --force-conflicts -f -
 
 echo "=== Creating TLS secret ==="
 kubectl create secret generic nginx-tls \
