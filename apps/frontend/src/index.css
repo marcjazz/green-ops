@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
 	--color-primary: #16a34a;
 	--color-primary-foreground: #fff;
@@ -20,4 +22,72 @@
 	--color-ring: #16a34a;
 	--color-background: #f0fdf4;
 	--color-foreground: #052e16;
+
+	--color-sidebar: #fff;
+	--color-sidebar-foreground: #052e16;
+	--color-sidebar-accent: #dcfce7;
+	--color-sidebar-accent-foreground: #166534;
+	--color-sidebar-border: #dcfce7;
+	--color-sidebar-ring: #16a34a;
+}
+
+.dark {
+	--color-primary: #22c55e;
+	--color-primary-foreground: #052e16;
+	--color-secondary: #27272a;
+	--color-secondary-foreground: #fafafa;
+	--color-muted: #27272a;
+	--color-muted-foreground: #a1a1aa;
+	--color-accent: #27272a;
+	--color-accent-foreground: #fafafa;
+	--color-destructive: #ef4444;
+	--color-destructive-foreground: #fafafa;
+	--color-card: #18181b;
+	--color-card-foreground: #fafafa;
+	--color-popover: #18181b;
+	--color-popover-foreground: #fafafa;
+	--color-border: #27272a;
+	--color-ring: #22c55e;
+	--color-background: #09090b;
+	--color-foreground: #fafafa;
+
+	--color-sidebar: #18181b;
+	--color-sidebar-foreground: #fafafa;
+	--color-sidebar-accent: #27272a;
+	--color-sidebar-accent-foreground: #fafafa;
+	--color-sidebar-border: #27272a;
+	--color-sidebar-ring: #22c55e;
+}
+
+/* Remove all rings/borders from cards by default */
+* {
+	border-color: var(--color-border);
+}
+
+/* Smooth transitions for all interactive elements */
+a,
+button,
+input,
+select,
+textarea {
+	transition: all 0.15s ease;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--color-border);
+	border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-muted-foreground);
 }
