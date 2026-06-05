@@ -8,7 +8,7 @@
 // ---------------------------------------------------------------------------
 // Metadata
 // ---------------------------------------------------------------------------
-Authors: Student 1, Student 2, Student 3
+Authors: Marco KUIDJA, Moussa TOURE, Wilfried MAILLET
 Version: 1.0
 Date: 2026-06
 

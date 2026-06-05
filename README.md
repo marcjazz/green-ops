@@ -4,9 +4,9 @@
 
 ### Authors
 
-* Student 1
-* Student 2
-* Student 3
+* Marco KUIDJA
+* Moussa TOURE
+* Wilfried MAILLET
 
 ### Version
 
