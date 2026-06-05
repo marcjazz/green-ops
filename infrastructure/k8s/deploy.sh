@@ -41,6 +41,18 @@ kubectl create configmap keycloak-realm \
   --from-file=realm.json="$SCRIPT_DIR/realm.json" \
   --dry-run=client -o yaml | kubectl apply -f -
 
+THEME_DIR="$SCRIPT_DIR/../docker/theme/greenops"
+echo "=== Creating Keycloak theme ConfigMap ==="
+kubectl create configmap keycloak-theme \
+  --namespace="$NAMESPACE" \
+  --from-file="$THEME_DIR/login/theme.properties" \
+  --from-file="$THEME_DIR/common/resources/css/main.css" \
+  --from-file="$THEME_DIR/common/resources/css/overrides.css" \
+  --from-file="$THEME_DIR/common/resources/js/runtime.js" \
+  --from-file="$THEME_DIR/common/resources/js/main.js" \
+  --from-file="$THEME_DIR/common/resources/js/split/911-4e9cc94ab88075badbbf.js" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 echo "=== Creating TLS secret ==="
 kubectl create secret generic nginx-tls \
   --namespace="$NAMESPACE" \

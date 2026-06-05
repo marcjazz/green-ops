@@ -45,10 +45,31 @@ spec:
           volumeMounts:
             - mountPath: /opt/keycloak/data/import
               name: realm-config
+            - name: theme
+              mountPath: /opt/keycloak/themes/greenops/login/theme.properties
+              subPath: theme.properties
+            - name: theme
+              mountPath: /opt/keycloak/themes/greenops/common/resources/css/main.css
+              subPath: main.css
+            - name: theme
+              mountPath: /opt/keycloak/themes/greenops/common/resources/css/overrides.css
+              subPath: overrides.css
+            - name: theme
+              mountPath: /opt/keycloak/themes/greenops/common/resources/js/runtime.js
+              subPath: runtime.js
+            - name: theme
+              mountPath: /opt/keycloak/themes/greenops/common/resources/js/main.js
+              subPath: main.js
+            - name: theme
+              mountPath: /opt/keycloak/themes/greenops/common/resources/js/split/911-4e9cc94ab88075badbbf.js
+              subPath: 911-4e9cc94ab88075badbbf.js
       volumes:
         - name: realm-config
           configMap:
             name: keycloak-realm
+        - name: theme
+          configMap:
+            name: keycloak-theme
 ---
 apiVersion: v1
 kind: Service
