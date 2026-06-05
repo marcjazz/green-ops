@@ -2,6 +2,7 @@
 	"id": "greenops",
 	"realm": "greenops",
 	"enabled": true,
+	"loginTheme": "greenops",
 	"clients": [
 		{
 			"clientId": "greenops-frontend",

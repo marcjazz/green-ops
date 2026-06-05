@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 630 107" fill="none">
+  <path d="M0 0h630v107H0z" fill="#f0fdf4"/>
+  <path d="M50 53.5a22 22 0 0 1 22-22h486a22 22 0 0 1 22 22v0a22 22 0 0 1-22 22H72a22 22 0 0 1-22-22v0z" fill="#16a34a" opacity="0.08"/>
+  <path d="M90 53.5c0-14.5 11.4-26.3 25.5-26.3 8.5 0 16 4.1 20.5 10.3a10.8 10.8 0 0 0-2.5 7 11 11 0 0 0 11 11c3.7 0 7-1.8 9-4.6a26 26 0 0 1 2.5 11.3c0 14.5-11.4 26.3-25.5 26.3S90 68 90 53.5z" fill="#16a34a"/>
+  <path d="M114.5 53.5c0-9 7.1-16.3 15.5-16.3s15.5 7.3 15.5 16.3-7.1 16.3-15.5 16.3-15.5-7.3-15.5-16.3z" fill="#fff"/>
+  <text x="170" y="68" font-family="system-ui, -apple-system, sans-serif" font-size="42" font-weight="700" fill="#052e16" letter-spacing="-0.5">GreenOps</text>
+</svg>

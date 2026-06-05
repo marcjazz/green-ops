@@ -28,6 +28,7 @@ services:
       KC_METRICS_ENABLED: "true"
     volumes:
       - ./realm.json:/opt/keycloak/data/import/realm.json
+      - ./theme/greenops:/opt/keycloak/themes/greenops
 
   alerts-service:
     build:
