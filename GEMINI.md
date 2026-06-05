@@ -8,7 +8,7 @@
 - **Frontend**: React (TypeScript)
 - **Backend**: Node.js + Express (TypeScript)
 - **Linting & Formatting**: [Biome](https://biomejs.dev/)
-- **Data Layer**: PostgreSQL, Redis
+- **Data Layer**: PostgreSQL, Redis (cache, alert dedup, rate limiting)
 - **Infrastructure**: Docker, Kubernetes, Nginx
 - **Monitoring**: Prometheus, Grafana
 - **CI/CD**: GitHub Actions

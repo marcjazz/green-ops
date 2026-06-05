@@ -5,7 +5,9 @@ import express from "express";
 import helmet from "helmet";
 import { Pool } from "pg";
 import client from "prom-client";
-import { authenticateJWT, UpdateUserProfileSchema } from "shared";
+import { authenticateJWT, UpdateUserProfileSchema, getRedis } from "shared";
+import rateLimit from "express-rate-limit";
+import RedisStore from "rate-limit-redis";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -16,6 +18,20 @@ const port = process.env.PORT || 3003;
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+// Rate limiting
+const redis = getRedis();
+const limiter = rateLimit({
+	store: new RedisStore({
+		sendCommand: (...args: string[]) => (redis as any).call(...args),
+	}),
+	windowMs: 60 * 1000,
+	max: 100,
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: { success: false, error: "Too many requests, please try again later" },
+});
+app.use(limiter);
 
 app.use((req, _res, next) => {
 	console.log(`${req.method} ${req.url}`);
@@ -38,6 +54,12 @@ app.get("/health", (_req, res) => {
 	res.json({ status: "ok", service: "user-service" });
 });
 
+const CACHE_TTL = 300; // 5 minutes
+
+function profileCacheKey(keycloakId: string): string {
+	return `user:profile:${keycloakId}`;
+}
+
 // GET /profile
 app.get("/profile", async (req, res) => {
 	const keycloakId = (req as any).user?.sub;
@@ -49,6 +71,14 @@ app.get("/profile", async (req, res) => {
 	}
 
 	try {
+		const cacheKey = profileCacheKey(keycloakId);
+		const cached = await redis.get(cacheKey);
+
+		if (cached) {
+			console.log("Profile cache hit for keycloakId:", keycloakId);
+			return res.json({ success: true, data: JSON.parse(cached) });
+		}
+
 		console.log("Fetching profile for keycloakId:", keycloakId);
 		let profile = await prisma.userProfile.findUnique({
 			where: { keycloakId },
@@ -57,21 +87,18 @@ app.get("/profile", async (req, res) => {
 		if (!profile) {
 			const email = (req as any).user?.email;
 			console.log("Profile not found for keycloakId, trying email:", email);
-			// Try to find profile by email (in case keycloakId changed)
 			if (email) {
 				profile = await prisma.userProfile.findUnique({
 					where: { email },
 				});
 			}
 			if (profile) {
-				// Existing profile found by email — update keycloakId
 				console.log("Found profile by email, updating keycloakId");
 				profile = await prisma.userProfile.update({
 					where: { email },
 					data: { keycloakId },
 				});
 			} else {
-				// No profile exists for this user at all — create one
 				console.log("Creating new profile for:", keycloakId);
 				profile = await prisma.userProfile.create({
 					data: {
@@ -82,6 +109,7 @@ app.get("/profile", async (req, res) => {
 			}
 		}
 
+		await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(profile));
 		res.json({ success: true, data: profile });
 	} catch (error: any) {
 		console.error("Error in GET /profile:", error.message, error.stack);
@@ -105,12 +133,19 @@ app.patch("/profile", async (req, res) => {
 			where: { keycloakId },
 			data: validated,
 		});
+		// Invalidate cache on update
+		const cacheKey = profileCacheKey(keycloakId);
+		await redis.del(cacheKey);
+		// Re-cache updated profile
+		await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(profile));
 		res.json({ success: true, data: profile });
 	} catch (_error) {
 		res.status(400).json({ success: false, error: "Invalid profile data" });
 	}
 });
 
-app.listen(port, () => {
-	console.log(`User service listening at http://localhost:${port}`);
+redis.connect().then(() => {
+	app.listen(port, () => {
+		console.log(`User service listening at http://localhost:${port}`);
+	});
 });

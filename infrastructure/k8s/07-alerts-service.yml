@@ -25,6 +25,15 @@ spec:
               value: "http://keycloak:8080/realms/greenops/protocol/openid-connect/certs"
             - name: PROMETHEUS_URL
               value: "http://prometheus:9090"
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: greenops-secrets
+                  key: redis-password
           ports:
             - containerPort: 3001
           readinessProbe:

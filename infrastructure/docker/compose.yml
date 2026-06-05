@@ -39,9 +39,11 @@ services:
       PORT: 3001
       KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/greenops/protocol/openid-connect/certs
       PROMETHEUS_URL: http://prometheus:9090
+      REDIS_URL: redis://:greenops_redis_pass@redis:6379
     depends_on:
       - postgres
       - prometheus
+      - redis
 
   user-service:
     build:
@@ -51,8 +53,10 @@ services:
       DATABASE_URL: postgresql://greenops:greenops_password@postgres:5432/greenops_db?schema=users
       PORT: 3003
       KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/greenops/protocol/openid-connect/certs
+      REDIS_URL: redis://:greenops_redis_pass@redis:6379
     depends_on:
       - postgres
+      - redis
 
   nginx:
     build:
@@ -72,6 +76,17 @@ services:
     image: prom/prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass greenops_redis_pass
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "greenops_redis_pass", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis_data:/data
 
   grafana:
     image: grafana/grafana
@@ -99,3 +114,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

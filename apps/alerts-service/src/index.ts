@@ -5,8 +5,10 @@ import express from "express";
 import helmet from "helmet";
 import { Pool } from "pg";
 import client from "prom-client";
-import { authenticateJWT, CreateAlertSchema } from "shared";
+import { authenticateJWT, CreateAlertSchema, getRedis } from "shared";
 import { startMonitor } from "./monitor.js";
+import rateLimit from "express-rate-limit";
+import RedisStore from "rate-limit-redis";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -17,6 +19,20 @@ const port = process.env.PORT || 3001;
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+// Rate limiting
+const redis = getRedis();
+const limiter = rateLimit({
+	store: new RedisStore({
+		sendCommand: (...args: string[]) => (redis as any).call(...args),
+	}),
+	windowMs: 60 * 1000,
+	max: 100,
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: { success: false, error: "Too many requests, please try again later" },
+});
+app.use(limiter);
 
 // Logger
 app.use((req, _res, next) => {
@@ -87,7 +103,9 @@ app.patch("/alerts/:id/read", async (req, res) => {
 	}
 });
 
-app.listen(port, () => {
-	console.log(`Alerts service listening at http://localhost:${port}`);
-	startMonitor(prisma);
+redis.connect().then(() => {
+	app.listen(port, () => {
+		console.log(`Alerts service listening at http://localhost:${port}`);
+		startMonitor(prisma, redis);
+	});
 });

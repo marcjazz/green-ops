@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import type { RedisClient } from "shared";
 
 interface AlertRule {
 	name: string;
@@ -42,6 +43,16 @@ const rules: AlertRule[] = [
 
 const PROMETHEUS_URL = process.env.PROMETHEUS_URL || "http://prometheus:9090";
 
+const TTL: Record<string, number> = {
+	critical: 600,
+	warning: 300,
+	info: 120,
+};
+
+function alertKey(ruleName: string): string {
+	return `alert:fired:${ruleName.replace(/\s+/g, "_")}`;
+}
+
 async function queryPrometheus(query: string): Promise<number | null> {
 	try {
 		const url = `${PROMETHEUS_URL}/api/v1/query?query=${encodeURIComponent(query)}`;
@@ -65,7 +76,7 @@ async function queryPrometheus(query: string): Promise<number | null> {
 	}
 }
 
-function startMonitor(prisma: PrismaClient): void {
+function startMonitor(prisma: PrismaClient, redis: RedisClient): void {
 	console.log("Starting Prometheus alert monitor...");
 
 	const check = async () => {
@@ -79,12 +90,13 @@ function startMonitor(prisma: PrismaClient): void {
 						? value > rule.threshold
 						: value < rule.threshold;
 
-				if (breached) {
-					const existing = await prisma.alert.findFirst({
-						where: { title: rule.name, isRead: false },
-					});
+				const key = alertKey(rule.name);
+				const ttl = TTL[rule.severity] || 300;
 
-					if (!existing) {
+				if (breached) {
+					const deduped = await redis.set(key, "1", "EX", ttl, "NX");
+
+					if (deduped === "OK") {
 						await prisma.alert.create({
 							data: {
 								title: rule.name,
@@ -98,6 +110,7 @@ function startMonitor(prisma: PrismaClient): void {
 						console.log(`Alert created: ${rule.name} (value: ${value})`);
 					}
 				} else {
+					await redis.del(key);
 					await prisma.alert.updateMany({
 						where: { title: rule.name, isRead: false },
 						data: { isRead: true },

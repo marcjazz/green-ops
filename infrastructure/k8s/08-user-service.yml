@@ -23,6 +23,15 @@ spec:
               value: "3003"
             - name: KEYCLOAK_JWKS_URI
               value: "http://keycloak:8080/realms/greenops/protocol/openid-connect/certs"
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: greenops-secrets
+                  key: redis-password
           ports:
             - containerPort: 3003
           readinessProbe:

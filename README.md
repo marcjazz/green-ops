@@ -255,8 +255,7 @@ Used for:
 
 ```text
 postgres_data
-grafana_data
-prometheus_data
+redis_data
 ```
 
 ---
@@ -363,6 +362,7 @@ greenops
 | alerts-service     | ghcr.io/marcjazz/green-ops/alerts-service:latest | 3001 | /health |
 | user-service       | ghcr.io/marcjazz/green-ops/user-service:latest   | 3003 | /health |
 | postgres           | postgres:16-alpine                            | 5432 | pg_isready |
+| redis              | redis:7-alpine                                | 6379 | redis-cli ping |
 | postgres-exporter  | prometheuscommunity/postgres-exporter         | 9187 | —      |
 | keycloak           | quay.io/keycloak/keycloak:24.0                | 8080 | —      |
 | prometheus         | prom/prometheus                               | 9090 | —      |
@@ -377,6 +377,7 @@ greenops
 | frontend           | LoadBalancer | 443, 80            | External entry point (nginx) |
 | alerts-service     | ClusterIP    | 3001               | Internal API |
 | user-service       | ClusterIP    | 3003               | Internal API |
+| redis              | ClusterIP    | 6379               | Cache / Dedup / Rate limiting |
 | postgres           | ClusterIP    | 5432               | Database |
 | postgres-exporter  | ClusterIP    | 9187               | Metrics |
 | keycloak           | ClusterIP    | 8080               | OIDC provider |
@@ -415,7 +416,7 @@ The nginx config routes requests by hostname:
 
 | Secret              | Contents                                      |
 | ------------------- | --------------------------------------------- |
-| `greenops-secrets`  | postgres-user, postgres-password, postgres-db |
+| `greenops-secrets`  | postgres-user, postgres-password, postgres-db, redis-password |
 | `nginx-tls`         | nginx.crt, nginx.key (self-signed)            |
 
 Secrets are generated during deployment via `deploy.sh`. TLS certificates are
