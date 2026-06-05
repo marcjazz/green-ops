@@ -48,38 +48,44 @@ The platform aims to:
 ## Architecture Diagram
 
 ```text
-                    ┌─────────────┐
-                    │   Frontend  │
-                    │   React     │
-                    └──────┬──────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │ API Gateway │
-                    └──────┬──────┘
-                           │
-         ┌─────────────────┼─────────────────┐
-         │                 │                 │
-         ▼                 ▼                 ▼
+                         ┌─────────────┐
+                         │   Frontend  │
+                         │   React     │
+                         └──────┬──────┘
+                                │
+                                ▼
+                         ┌─────────────┐
+                         │    Nginx    │
+                         │  Reverse    │
+                         │   Proxy     │
+                         └──┬──────┬───┘
+                            │      │
+          ┌─────────────────┼──────┼──────────────────┐
+          │                 │      │                  │
+          ▼                 ▼      ▼                  ▼
 
- ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
- │ Auth Service│   │ Metrics API │   │ Alert API   │
- └──────┬──────┘   └──────┬──────┘   └──────┬──────┘
-        │                 │                 │
-        └─────────┬───────┴─────────┬───────┘
-                  │                 │
-                  ▼                 ▼
+  ┌─────────────┐   ┌─────────────┐          ┌──────────────┐
+  │   Keycloak  │   │  Alerts     │          │   User       │
+  │   OIDC      │   │  Service    │          │   Service    │
+  └──────┬──────┘   └──────┬──────┘          └──────┬───────┘
+         │                 │                        │
+         └─────────┬───────┴────────────────────────┘
+                   │
+                   ▼
 
-          ┌─────────────┐   ┌─────────────┐
-          │ PostgreSQL  │   │ Redis Cache │
-          └─────────────┘   └─────────────┘
+         ┌──────────────────┐
+         │    PostgreSQL    │
+         │  (alerts + users)│
+         └──────────────────┘
 
-                  │
-                  ▼
+                   │
+                   ▼
 
-       ┌──────────────────────┐
-       │ Prometheus + Grafana │
-       └──────────────────────┘
+  ┌─────────────┐   ┌──────────────┐   ┌────────────┐
+  │  Prometheus │   │    Redis     │   │   Grafana  │
+  │   + Exporter│   │  Cache /     │   │  (auto-    │
+  │             │   │  Rate limit  │   │  provision)│
+  └─────────────┘   └──────────────┘   └────────────┘
 ```
 
 ---
@@ -96,18 +102,23 @@ The platform aims to:
 
 ## Backend
 
-| Component       | Technology        |
-| --------------- | ----------------- |
-| API Gateway     | Node.js + Express |
-| Auth Service    | Node.js + Express |
-| Metrics Service | Node.js + Express |
+| Component        | Technology        |
+| ---------------- | ----------------- |
+| Alerts Service   | Node.js + Express |
+| User Service     | Node.js + Express |
 
-## Data Layer
+## Identity & Access
 
 | Component | Technology |
 | --------- | ---------- |
-| Database  | PostgreSQL |
-| Cache     | Redis      |
+| OIDC      | Keycloak 24 |
+
+## Data Layer
+
+| Component | Technology        |
+| --------- | ----------------- |
+| Database  | PostgreSQL 16     |
+| Cache     | Redis 7           |
 
 ## Infrastructure
 
@@ -122,93 +133,74 @@ The platform aims to:
 
 ---
 
-# 5. Microservices Description
+# 5. Services Description
 
-## API Gateway
+## Frontend
 
-Responsibilities:
+React SPA served by nginx. Communicates with backends through the nginx reverse proxy at `/api/alerts/*` and `/api/user/*`. Authentication uses Keycloak OIDC (OpenID Connect) with the `oauth` flow via the `oidc-client-ts` library.
 
-* Single entry point
-* Request routing
-* Authentication validation
-* Service discovery
+## Alerts Service
 
-### Endpoints
-
-```http
-POST /api/login
-GET  /api/metrics
-GET  /api/health
-```
-
----
-
-## Authentication Service
-
-Responsibilities:
-
-* User management
-* JWT generation
-* JWT validation
+Monitors Prometheus metrics and creates alert records.
 
 ### Endpoints
 
 ```http
-POST /login
-POST /register
-GET  /health
+GET    /alerts         List all alerts
+POST   /alerts         Create an alert
+PATCH  /alerts/:id/read  Mark alert as read
+GET    /health         Health check
 ```
 
----
+## User Service
 
-## Metrics Service
-
-Responsibilities:
-
-* Energy metrics retrieval
-* Dashboard data generation
+Manages user profiles synced from Keycloak identity tokens.
 
 ### Endpoints
 
 ```http
-GET /metrics
-GET /health
+GET    /profile        Get current user profile
+PATCH  /profile        Update user profile
+GET    /health         Health check
 ```
+
+## Keycloak
+
+OIDC provider handling authentication and user management.
 
 ---
 
 # 6. Database Design
 
-## Users
+Two schemas are used within a single PostgreSQL database (`greenops_db`):
 
-```sql
-CREATE TABLE users (
-    id UUID PRIMARY KEY,
-    email VARCHAR(255),
-    password_hash TEXT,
-    role VARCHAR(50)
-);
-```
-
-## Metrics
-
-```sql
-CREATE TABLE metrics (
-    id UUID PRIMARY KEY,
-    metric_name VARCHAR(100),
-    metric_value NUMERIC,
-    created_at TIMESTAMP
-);
-```
-
-## Alerts
+### Schema: `alerts`
 
 ```sql
 CREATE TABLE alerts (
-    id UUID PRIMARY KEY,
-    severity VARCHAR(50),
-    message TEXT,
-    created_at TIMESTAMP
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title           TEXT NOT NULL,
+    description     TEXT,
+    severity        VARCHAR(10) NOT NULL,
+    metric_name     VARCHAR(100),
+    metric_value    DOUBLE PRECISION,
+    threshold       DOUBLE PRECISION,
+    is_read         BOOLEAN NOT NULL DEFAULT false,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+### Schema: `users`
+
+```sql
+CREATE TABLE user_profiles (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    keycloak_id VARCHAR(255) UNIQUE,
+    email       VARCHAR(255) UNIQUE,
+    theme       VARCHAR(20) DEFAULT 'light',
+    notifications JSONB DEFAULT '{}',
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
 
@@ -218,38 +210,18 @@ CREATE TABLE alerts (
 
 ## Services
 
-| Service       | Container       |
-| ------------- | --------------- |
-| Frontend      | frontend        |
-| Gateway       | gateway         |
-| Auth          | auth-service    |
-| Metrics       | metrics-service |
-| PostgreSQL    | postgres        |
-| Redis         | redis           |
-| Prometheus    | prometheus      |
-| Grafana       | grafana         |
-| Reverse Proxy | nginx           |
-
----
-
-## Docker Networks
-
-### Public Network
-
-Used for:
-
-* Frontend
-* Nginx
-
-### Private Network
-
-Used for:
-
-* Internal APIs
-* PostgreSQL
-* Redis
-
----
+| Service          | Container            | Port(s)     |
+| ---------------- | -------------------- | ----------- |
+| Frontend + Nginx | frontend             | 80, 443     |
+| Alerts Service   | alerts-service       | 3001        |
+| User Service     | user-service         | 3003        |
+| Keycloak         | keycloak:24.0        | 8080        |
+| PostgreSQL       | postgres:16-alpine   | 5432        |
+| Redis            | redis:7-alpine       | 6379        |
+| Prometheus       | prom/prometheus      | 9090        |
+| Grafana          | grafana/grafana      | 3000        |
+| nginx-exporter   | nginx/nginx-prometheus-exporter | 9113 |
+| postgres-exporter| prometheuscommunity/postgres-exporter | 9187 |
 
 ## Persistent Volumes
 
@@ -258,38 +230,76 @@ postgres_data
 redis_data
 ```
 
+## Grafana Provisioning
+
+Grafana is auto-configured on startup via volume-mounted provisioning files:
+
+| Mount                                      | Purpose                     |
+| ------------------------------------------ | --------------------------- |
+| `infrastructure/grafana/provisioning/datasources/` | Prometheus datasource |
+| `infrastructure/grafana/provisioning/dashboards/`  | Dashboard loader     |
+| `infrastructure/grafana/dashboards/`               | Dashboard JSON files |
+
 ---
 
 # 8. Monitoring and Observability
 
 ## Prometheus
 
-Prometheus collects:
+Prometheus scrapes the following targets at `15s` intervals:
 
-* CPU usage
-* Memory usage
-* HTTP requests
-* Service health metrics
+| Job                | Target                      | Metrics                                      |
+| ------------------ | --------------------------- | -------------------------------------------- |
+| `prometheus`       | `localhost:9090`            | Prometheus self-metrics                      |
+| `alerts-service`   | `alerts-service:3001`       | Node.js (CPU, memory, event loop, handles)   |
+| `user-service`     | `user-service:3003`         | Node.js (CPU, memory, event loop, handles)   |
+| `postgres-exporter`| `postgres-exporter:9187`    | PostgreSQL (connections, size, cache hit)     |
+| `keycloak`         | `keycloak:8080/metrics`     | JVM (heap, threads, GC, CPU)                 |
+| `nginx`            | `nginx-exporter:9113`       | Nginx connections, request rate              |
 
-### Scraped Targets
+### Internal Alerting
 
-```text
-gateway:3000
-auth-service:3001
-metrics-service:3002
-```
+The alerts-service includes a built-in Prometheus monitor (`src/monitor.ts`) that polls the Prometheus API every 30s and creates alert records in PostgreSQL for:
+
+- **Alerts Service Down** — `up{job="alerts-service"} < 0.5`
+- **User Service Down** — `up{job="user-service"} < 0.5`
+- **High Scrape Duration** — `scrape_duration_seconds{job="prometheus"} > 1`
+
+Alert deduplication is handled via Redis `SET NX EX` with per-severity TTLs (critical=10min, warning=5min, info=2min).
 
 ---
 
 ## Grafana
 
-Dashboards include:
+Grafana is deployed with **auto-provisioning** — a Prometheus datasource and dashboard are loaded automatically on startup, no manual configuration needed.
 
-* Infrastructure Overview
-* Application Metrics
-* Resource Consumption
-* Request Rate
-* Error Rate
+### Access
+
+```
+URL:  https://monitor.greenops.local
+Auth: Keycloak OIDC (same credentials as the main app)
+```
+
+### Dashboard: GreenOps — Service Overview
+
+The dashboard is provisioned from `infrastructure/grafana/dashboards/greenops-overview.json` and contains 12 panels:
+
+| # | Panel                  | Key Query                                              | Source        |
+|---|------------------------|--------------------------------------------------------|---------------|
+| 1 | Service Health         | `up{job=~"$job"}`                                       | All targets   |
+| 2 | Memory Usage           | `process_resident_memory_bytes`                          | Node.js       |
+| 3 | Heap Utilization       | `nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes` | Node.js  |
+| 4 | CPU Usage              | `rate(process_cpu_user_seconds_total[1m])`               | Node.js       |
+| 5 | Event Loop Lag         | `nodejs_eventloop_lag_seconds`                           | Node.js       |
+| 6 | Active Requests        | `nodejs_active_requests_total`                           | Node.js       |
+| 7 | Postgres Overview      | `pg_stat_activity_count`, `pg_database_size_bytes`       | PostgreSQL    |
+| 8 | Scrape Duration        | `scrape_duration_seconds` (table)                        | Prometheus    |
+| 9 | Nginx Connections      | `nginx_connections_active / reading / writing / waiting`  | Nginx         |
+| 10| Nginx Request Rate     | `rate(nginx_http_requests_total[1m])`                    | Nginx         |
+| 11| Keycloak JVM Heap      | `jvm_memory_used_bytes`, `jvm_memory_max_bytes`          | Keycloak      |
+| 12| Keycloak CPU & Threads | `system_cpu_usage`, `jvm_threads_live_threads`           | Keycloak      |
+
+The template variable `$job` filters panels 1–6 by service. By default it targets `alerts-service` and `user-service`, but also accepts `postgres-exporter`, `keycloak`, and `nginx`.
 
 ---
 
@@ -297,7 +307,7 @@ Dashboards include:
 
 ## Authentication
 
-JWT-based authentication.
+OIDC (OpenID Connect) via Keycloak 24.
 
 ### Flow
 
@@ -305,14 +315,23 @@ JWT-based authentication.
 User
   │
   ▼
-Login
+Keycloak Login (accounts.greenops.local)
   │
   ▼
-JWT Token
+Access Token (JWT)
   │
   ▼
-Protected API Access
+Nginx proxies requests with Bearer token
+  │
+  ▼
+Backend services validate JWT via JWKS endpoint
 ```
+
+Keycloak is configured with:
+- A realm (`greenops`) with client applications for the frontend and Grafana
+- Metrics enabled (`KC_METRICS_ENABLED: "true"`)
+
+Grafana uses OIDC through the `generic_oauth` auth provider, authenticating users against the same Keycloak realm.
 
 ---
 
@@ -323,13 +342,12 @@ Sensitive values are stored using:
 * Environment variables (Docker)
 * Kubernetes Secrets
 
-Examples:
+Secret values:
 
-```text
-POSTGRES_PASSWORD
-JWT_SECRET
-REDIS_PASSWORD
-```
+| Secret              | Values                                                           |
+| ------------------- | ---------------------------------------------------------------- |
+| `greenops-secrets`  | postgres-user, postgres-password, postgres-db, redis-password, grafana-client-secret |
+| `nginx-tls`         | nginx.crt, nginx.key (self-signed)                               |
 
 ---
 
@@ -372,9 +390,9 @@ greenops
 
 ## Services
 
-| Service            | Type         | Port(s)            | Purpose |
-| ------------------ | ------------ | ------------------ | ------- |
-| frontend           | LoadBalancer | 443, 80            | External entry point (nginx) |
+| Service            | Type         | Port(s)               | Purpose |
+| ------------------ | ------------ | --------------------- | ------- |
+| frontend           | LoadBalancer | 443, 80, 9113         | External entry point (nginx) + nginx-exporter metrics |
 | alerts-service     | ClusterIP    | 3001               | Internal API |
 | user-service       | ClusterIP    | 3003               | Internal API |
 | redis              | ClusterIP    | 6379               | Cache / Dedup / Rate limiting |
@@ -393,11 +411,14 @@ reverse-proxies API requests to the internal ClusterIP services.
 
 ConfigMaps are created from K8s-specific config files in `infrastructure/k8s/`:
 
-| ConfigMap          | Source File                        | Mounted In      |
-| ------------------ | ---------------------------------- | --------------- |
-| `nginx-config`     | `infrastructure/k8s/nginx.conf`    | frontend        |
-| `prometheus-config` | `infrastructure/k8s/prometheus.yml` | prometheus      |
-| `keycloak-realm`   | `infrastructure/k8s/realm.json`    | keycloak        |
+| ConfigMap                   | Source File                                          | Mounted In      |
+| --------------------------- | ---------------------------------------------------- | --------------- |
+| `nginx-config`              | `infrastructure/k8s/nginx.conf`                      | frontend        |
+| `prometheus-config`         | `infrastructure/k8s/prometheus.yml`                  | prometheus      |
+| `keycloak-realm`            | `infrastructure/k8s/realm.json`                      | keycloak        |
+| `grafana-datasource`        | `infrastructure/grafana/provisioning/datasources/`   | grafana         |
+| `grafana-dashboard-provider`| `infrastructure/grafana/provisioning/dashboards/`    | grafana         |
+| `grafana-dashboard`         | `infrastructure/grafana/dashboards/`                 | grafana         |
 
 The nginx config routes requests by hostname:
 
@@ -595,11 +616,26 @@ kubectl logs -n greenops -l app=<service> --tail=50 -f
 # Port-forward for debugging
 kubectl port-forward -n greenops service/frontend 8443:443
 
+# Reload Prometheus config without restarting
+kubectl exec -n greenops deployment/prometheus -- kill -HUP 1
+
 # Delete everything
 kubectl delete namespace greenops --force --grace-period=0
 
 # Stop Minikube
 minikube stop
+```
+
+### Docker: Reload Config After Changes
+
+When updating mounted config files (nginx.conf, prometheus.yml, dashboard JSON), recreate the affected containers:
+
+```bash
+# Full refresh (keep volumes)
+docker compose -f infrastructure/docker/compose.yml down && docker compose up -d --build
+
+# Or reload Prometheus config on-the-fly
+docker compose -f infrastructure/docker/compose.yml exec prometheus kill -HUP 1
 ```
 
 ---

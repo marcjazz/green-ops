@@ -19,6 +19,8 @@
 - `apps/user-service`: Manages user profiles and preferences (Express + Prisma).
 - `packages/shared`: Shared TypeScript types and Zod schemas.
 - `infrastructure/docker`: Docker Compose and Prometheus configurations.
+- `infrastructure/k8s`: Kubernetes manifests and deploy script.
+- `infrastructure/grafana`: Grafana auto-provisioning (datasource, dashboard provider, dashboard JSON).
 
 ## Building and Running
 ### Local Development
@@ -71,10 +73,16 @@ kubectl get ingress
 
 ## Development Conventions
 - **Microservices**: Each service should follow a consistent structure (Express.js).
-- **Authentication**: All protected routes require a JWT token validated by the Auth Service.
-- **Monitoring**: Services should expose a `/health` endpoint and metrics for Prometheus.
+- **Authentication**: All protected routes require a JWT token validated against Keycloak's JWKS endpoint.
+- **Monitoring**: Services expose a `/health` endpoint and Prometheus metrics at `/metrics` via `prom-client`.
+- **Caching / Rate Limiting**: Redis-backed via `ioredis` with `lazyConnect` (server starts before Redis).
+- **Alert Dedup**: Redis `SET NX EX` prevents duplicate alert records within configurable TTLs.
 - **CI/CD**: GitHub Actions is used for automated testing, building Docker images, and deployment validation.
 
 ## Key Files
 - `README.md`: Comprehensive technical documentation of the project.
 - `Cahier des charges - Docker et Kubernetes.pdf`: Functional and technical requirements document.
+- `infrastructure/grafana/dashboards/greenops-overview.json`: Provisioned Grafana dashboard (12 panels covering Node.js, PostgreSQL, Keycloak, Nginx).
+- `infrastructure/grafana/provisioning/`: Auto-provisioning configs for Prometheus datasource and dashboard loader.
+- `infrastructure/k8s/deploy.sh`: One-command script to deploy the full stack to Minikube.
+- `apps/alerts-service/src/monitor.ts`: Internal Prometheus alert monitor (polls API every 30s, creates alert records via Prisma).
