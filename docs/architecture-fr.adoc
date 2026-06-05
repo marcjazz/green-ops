@@ -162,22 +162,35 @@ pour gérer gracieusement les changements d'ID utilisateur Keycloak.
 
 [horizontal]
 Image:: `nginx:alpine` (pour la SPA) + configuration depuis `infrastructure/docker/nginx.conf`
-Ports:: `80:80`, `443:443`
+Ports:: `80:80`, `443:443` (+ interne `8081` pour stub_status)
 
-Remplit trois responsabilités :
+Remplit quatre responsabilités :
 
 * **Serveur de fichiers statiques** — sert la SPA React construite à `/`.
 * **Proxy inverse** — achemine les chemins API vers les services backend.
 * **Terminaison TLS** — termine HTTPS avec des certificats auto-signés.
+* **stub_status** — expose les métriques de connexion sur le port `8081` pour nginx-exporter.
 
-Trois hôtes virtuels :
+Quatre blocs serveur (trois hôtes virtuels + un interne) :
 
 |===
-| Nom du serveur            | Rôle
-| `greenops.local`          | Frontend + API
-| `accounts.greenops.local` | Keycloak
-| `monitor.greenops.local`  | Grafana
+| Écoute  | Nom du serveur            | Rôle
+| `8081`   | `localhost`               | stub_status (interne, pour nginx-exporter)
+| `80/443` | `greenops.local`          | Frontend + API
+| `80/443` | `accounts.greenops.local` | Keycloak
+| `80/443` | `monitor.greenops.local`  | Grafana
 |===
+
+=== nginx-exporter
+
+[horizontal]
+Image:: `nginx/nginx-prometheus-exporter:latest`
+Port:: `9113` (interne)
+URI de scraping:: `http://nginx:8081/stub_status`
+
+Exposant sidecar qui lit stub_status Nginx et expose les métriques au format
+Prometheus. Dans Docker Compose, il s'exécute comme un service séparé ; dans
+Kubernetes, comme un conteneur sidecar dans le pod frontend.
 
 === Prometheus
 
@@ -195,6 +208,7 @@ Scrape les cibles suivantes toutes les 15 secondes :
 | `user-service`         | `user-service:3003`
 | `postgres-exporter`    | `postgres-exporter:9187`
 | `keycloak`             | `keycloak:8080/metrics`
+| `nginx-exporter`       | `nginx-exporter:9113`
 |===
 
 Le frontend interroge Prometheus via le proxy Nginx pour :
@@ -218,6 +232,13 @@ Grafana est accessible à `https://monitor.greenops.local`.
 Image:: `prometheuscommunity/postgres-exporter:latest`
 Port:: `9187` (interne uniquement)
 Rôle:: Expose les métriques PostgreSQL à Prometheus.
+
+=== nginx-exporter
+
+[horizontal]
+Image:: `nginx/nginx-prometheus-exporter:latest`
+Port:: `9113` (interne uniquement)
+Rôle:: Expose les métriques de connexion Nginx à Prometheus (lus depuis stub_status sur le port `8081`).
 
 // ---------------------------------------------------------------------------
 // 4. Prise en main — Docker
@@ -429,7 +450,8 @@ Tags : `latest` (branche), `sha-<short>` (toujours), semver (tags).
 ├── packages/
 │   └── shared/                 # Schémas Zod partagés, middleware JWT
 ├── docs/
-│   └── architecture-fr.adoc    # Ce document
+│   ├── architecture-fr.adoc    # Ce document
+│   └── grafana-dashboards/     # JSON des tableaux de bord Grafana prêts à l'emploi
 ├── pnpm-workspace.yaml         # Configuration de l'espace de travail pnpm
 ├── package.json                # Scripts racine (lint, build, vérification de types)
 ├── tsconfig.json               # Configuration TypeScript de base
