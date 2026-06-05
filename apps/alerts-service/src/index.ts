@@ -103,9 +103,11 @@ app.patch("/alerts/:id/read", async (req, res) => {
 	}
 });
 
-redis.connect().then(() => {
-	app.listen(port, () => {
-		console.log(`Alerts service listening at http://localhost:${port}`);
-		startMonitor(prisma, redis);
-	});
+app.listen(port, () => {
+	console.log(`Alerts service listening at http://localhost:${port}`);
+	startMonitor(prisma, redis);
+});
+
+redis.connect().catch((err: Error) => {
+	console.error("Redis connection failed — rate limiting and dedup degraded:", err.message);
 });

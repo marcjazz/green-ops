@@ -144,8 +144,10 @@ app.patch("/profile", async (req, res) => {
 	}
 });
 
-redis.connect().then(() => {
-	app.listen(port, () => {
-		console.log(`User service listening at http://localhost:${port}`);
-	});
+app.listen(port, () => {
+	console.log(`User service listening at http://localhost:${port}`);
+});
+
+redis.connect().catch((err: Error) => {
+	console.error("Redis connection failed — rate limiting and cache degraded:", err.message);
 });
