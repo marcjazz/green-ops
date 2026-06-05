@@ -443,6 +443,10 @@ Tags : `latest` (branche), `sha-<short>` (toujours), semver (tags).
 │       ├── 07-alerts-service.yml  # API Alertes
 │       ├── 08-user-service.yml    # API Profils utilisateur
 │       ├── 09-frontend.yml     # Frontend (nginx + SPA)
+│       ├── 10-redis.yml          # Cache Redis
+│       ├── 11-hpa-alerts.yml      # HPA pour alerts-service
+│       ├── 12-hpa-user.yml        # HPA pour user-service
+│       ├── 13-hpa-frontend.yml    # HPA pour frontend
 │       ├── deploy.sh           # Déploiement Minikube en une commande
 │       ├── nginx.conf          # Configuration Nginx (version K8s)
 │       ├── prometheus.yml      # Configuration Prometheus (version K8s)
@@ -485,18 +489,22 @@ greenops
 
 === Déploiements
 
-[cols="1,1,1,1"]
+[cols="1,1,1,1,1"]
 |===
-| Déploiement        | Image                                | Port  | Sonde de préparation
-| frontend           | ghcr.io/.../frontend:latest          | 443   | —
-| alerts-service     | ghcr.io/.../alerts-service:latest    | 3001  | `GET /health`
-| user-service       | ghcr.io/.../user-service:latest      | 3003  | `GET /health`
-| postgres           | postgres:16-alpine                   | 5432  | `pg_isready`
-| postgres-exporter  | prometheuscommunity/postgres-exporter | 9187  | —
-| keycloak           | quay.io/keycloak/keycloak:24.0       | 8080  | —
-| prometheus         | prom/prometheus                      | 9090  | —
-| grafana            | grafana/grafana                      | 3000  | —
+| Déploiement        | Image                                | Port  | Répliques | Sonde de préparation
+| frontend           | ghcr.io/.../frontend:latest          | 443   | 2 (HPA)   | —
+| alerts-service     | ghcr.io/.../alerts-service:latest    | 3001  | 2 (HPA)   | `GET /health`
+| user-service       | ghcr.io/.../user-service:latest      | 3003  | 2 (HPA)   | `GET /health`
+| postgres           | postgres:16-alpine                   | 5432  | 1         | `pg_isready`
+| postgres-exporter  | prometheuscommunity/postgres-exporter | 9187 | 1        | —
+| keycloak           | quay.io/keycloak/keycloak:24.0       | 8080  | 1         | —
+| prometheus         | prom/prometheus                      | 9090  | 1         | —
+| grafana            | grafana/grafana                      | 3000  | 1         | —
 |===
+
+NOTE: Les services critiques (frontend, alerts-service, user-service) sont configurés
+avec une base de 2 répliques et peuvent être mis à l'échelle automatiquement de 2 à 5
+répliques via Horizontal Pod Autoscaler (HPA) selon l'utilisation CPU/mémoire.
 
 === Services
 
@@ -514,6 +522,67 @@ greenops
 
 Le LoadBalancer `frontend` est le seul point d'entrée externe. `minikube tunnel`
 achemine l'IP du LoadBalancer vers l'hôte.
+
+=== Horizontal Pod Autoscalers
+
+Les Horizontal Pod Autoscalers (HPA) permettent une mise à l'échelle automatique
+des services critiques en fonction de l'utilisation des ressources :
+
+[cols="1,1,1,1,1"]
+|===
+| HPA                  | Cible             | Min | Max | Seuils (CPU/Mém)
+| alerts-service-hpa   | alerts-service    | 2   | 5   | 70% / 80%
+| user-service-hpa     | user-service      | 2   | 5   | 70% / 80%
+| frontend-hpa         | frontend          | 2   | 5   | 70% / 80%
+|===
+
+Fonctionnement :
+
+* **Scale-up** : Déclenché automatiquement quand l'utilisation CPU dépasse 70%
+* **Scale-down** : Réduction progressive quand l'utilisation chute sous les seuils
+* **Haute disponibilité** : Minimum 2 répliques garanties pour les services critiques
+
+==== Configuration des ressources
+
+Chaque déploiement avec HPA inclut des demandes (requests) et limites de ressources :
+
+[source,yaml]
+----
+resources:
+  requests:
+    cpu: 100m      # 100 millicores
+    memory: 128Mi  # 128 MiB
+  limits:
+    cpu: 500m      # 500 millicores
+    memory: 512Mi  # 512 MiB
+----
+
+Ces limites permettent au planificateur Kubernetes de placer efficacement les pods
+et à l'HPA de fonctionner correctement.
+
+==== Prérequis
+
+L'HPA nécessite le serveur de métriques (Metrics Server) dans le cluster :
+
+[source,bash]
+----
+# Activer l'addon metrics-server dans Minikube
+minikube addons enable metrics-server
+----
+
+==== Vérification
+
+[source,bash]
+----
+# Lister tous les HPA
+kubectl get hpa -n greenops
+
+# Détails d'un HPA spécifique
+kubectl describe hpa alerts-service-hpa -n greenops
+
+# Surveiller la mise à l'échelle en temps réel
+kubectl get hpa -n greenops -w
+----
 
 === ConfigMaps
 
@@ -609,6 +678,7 @@ Ce que fait le script :
 . Crée les ConfigMaps à partir des fichiers de configuration `infrastructure/k8s/*`
 . Crée un Secret TLS pour nginx
 . Applique tous les manifestes dans l'ordre (PostgreSQL → Keycloak → Prometheus → services → frontend)
+. Applique les configurations Horizontal Pod Autoscaler
 . Attend que tous les pods atteignent l'état `Ready`
 . Affiche les instructions de connexion
 
@@ -636,6 +706,9 @@ kubectl get svc frontend -n greenops
 ----
 # Vérifier que tous les pods sont en cours d'exécution
 kubectl get pods -n greenops
+
+# Vérifier les Horizontal Pod Autoscalers
+kubectl get hpa -n greenops
 
 # Tester la SPA frontend
 curl -sk https://greenops.local/ | head -5
