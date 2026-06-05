@@ -52,6 +52,26 @@ spec:
               value: "debug"
           ports:
             - containerPort: 3000
+          volumeMounts:
+            - mountPath: /etc/grafana/provisioning/datasources/datasource.yml
+              subPath: datasource.yml
+              name: grafana-datasource
+            - mountPath: /etc/grafana/provisioning/dashboards/dashboard-provider.yml
+              subPath: dashboard-provider.yml
+              name: grafana-dashboard-provider
+            - mountPath: /etc/grafana/dashboards/greenops-overview.json
+              subPath: greenops-overview.json
+              name: grafana-dashboard
+      volumes:
+        - name: grafana-datasource
+          configMap:
+            name: grafana-datasource
+        - name: grafana-dashboard-provider
+          configMap:
+            name: grafana-dashboard-provider
+        - name: grafana-dashboard
+          configMap:
+            name: grafana-dashboard
 ---
 apiVersion: v1
 kind: Service

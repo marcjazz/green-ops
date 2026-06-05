@@ -25,6 +25,22 @@ eval "$(minikube docker-env 2>/dev/null || true)"
 echo "=== Creating namespace ==="
 kubectl apply -f "$SCRIPT_DIR/00-namespace.yml"
 
+echo "=== Creating Grafana provisioning ConfigMaps ==="
+kubectl create configmap grafana-datasource \
+  --namespace="$NAMESPACE" \
+  --from-file=datasource.yml="$SCRIPT_DIR/../grafana/provisioning/datasources/datasource.yml" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl create configmap grafana-dashboard-provider \
+  --namespace="$NAMESPACE" \
+  --from-file=dashboard-provider.yml="$SCRIPT_DIR/../grafana/provisioning/dashboards/dashboard-provider.yml" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl create configmap grafana-dashboard \
+  --namespace="$NAMESPACE" \
+  --from-file=greenops-overview.json="$SCRIPT_DIR/../grafana/dashboards/greenops-overview.json" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 echo "=== Creating ConfigMaps from K8s-specific config files ==="
 kubectl create configmap nginx-config \
   --namespace="$NAMESPACE" \

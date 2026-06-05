@@ -1,0 +1,295 @@
+{
+	"title": "GreenOps - Service Overview",
+	"description": "Essential metrics for alerts-service, user-service, PostgreSQL, and Prometheus",
+	"tags": ["greenops", "nodejs", "postgres"],
+	"timezone": "browser",
+	"editable": false,
+	"refresh": "30s",
+	"time": {
+		"from": "now-1h",
+		"to": "now"
+	},
+	"timepicker": {},
+	"templating": {
+		"list": [
+			{
+				"name": "job",
+				"type": "query",
+				"query": "label_values(up, job)",
+				"refresh": 1,
+				"includeAll": true,
+				"multi": true,
+				"allValue": ".+",
+				"current": { "selected": true, "text": ["alerts-service", "user-service"], "value": ["alerts-service", "user-service"] }
+			}
+		]
+	},
+	"panels": [
+		{
+			"id": 1,
+			"title": "Service Health",
+			"type": "stat",
+			"gridPos": { "h": 6, "w": 4, "x": 0, "y": 0 },
+			"options": {
+				"colorMode": "background",
+				"graphMode": "none",
+				"justifyMode": "auto",
+				"orientation": "auto",
+				"reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+				"textMode": "auto"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "percentunit",
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{ "color": "red", "value": null },
+							{ "color": "green", "value": 0.5 }
+						]
+					},
+					"min": 0,
+					"max": 1,
+					"custom": { "displayMode": "list" }
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "up{job=~\"$job\"}",
+					"legendFormat": "{{ job }}",
+					"refId": "A"
+				}
+			],
+			"description": "Up/down status for each scraped service target"
+		},
+		{
+			"id": 2,
+			"title": "Memory Usage",
+			"type": "timeseries",
+			"gridPos": { "h": 6, "w": 10, "x": 4, "y": 0 },
+			"options": {
+				"legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+				"tooltip": { "mode": "multi", "sort": "none" }
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "bytes",
+					"custom": {
+						"lineInterpolation": "smooth",
+						"showPoints": "never"
+					}
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "process_resident_memory_bytes{job=~\"$job\"}",
+					"legendFormat": "{{ job }}",
+					"refId": "A"
+				}
+			],
+			"description": "Resident memory usage per service"
+		},
+		{
+			"id": 3,
+			"title": "Heap Utilization",
+			"type": "timeseries",
+			"gridPos": { "h": 6, "w": 10, "x": 14, "y": 0 },
+			"options": {
+				"legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+				"tooltip": { "mode": "multi", "sort": "none" }
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "percent",
+					"min": 0,
+					"max": 100,
+					"custom": {
+						"lineInterpolation": "smooth",
+						"showPoints": "never"
+					}
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "nodejs_heap_size_used_bytes{job=~\"$job\"} / nodejs_heap_size_total_bytes{job=~\"$job\"} * 100",
+					"legendFormat": "{{ job }}",
+					"refId": "A"
+				}
+			],
+			"description": "Node.js heap usage as a percentage of total heap size"
+		},
+		{
+			"id": 4,
+			"title": "CPU Usage",
+			"type": "timeseries",
+			"gridPos": { "h": 6, "w": 8, "x": 0, "y": 6 },
+			"options": {
+				"legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+				"tooltip": { "mode": "multi", "sort": "none" }
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "cps",
+					"custom": {
+						"lineInterpolation": "smooth",
+						"showPoints": "never"
+					}
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "rate(process_cpu_user_seconds_total{job=~\"$job\"}[1m])",
+					"legendFormat": "{{ job }}",
+					"refId": "A"
+				}
+			],
+			"description": "CPU time consumed per second"
+		},
+		{
+			"id": 5,
+			"title": "Event Loop Lag",
+			"type": "timeseries",
+			"gridPos": { "h": 6, "w": 8, "x": 8, "y": 6 },
+			"options": {
+				"legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+				"tooltip": { "mode": "multi", "sort": "none" }
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"custom": {
+						"lineInterpolation": "smooth",
+						"showPoints": "never"
+					}
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "nodejs_eventloop_lag_seconds{job=~\"$job\"}",
+					"legendFormat": "{{ job }}",
+					"refId": "A"
+				}
+			],
+			"description": "Event loop lag — values above 0.1s indicate blocked event loop"
+		},
+		{
+			"id": 6,
+			"title": "Active Requests",
+			"type": "timeseries",
+			"gridPos": { "h": 6, "w": 8, "x": 16, "y": 6 },
+			"options": {
+				"legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+				"tooltip": { "mode": "multi", "sort": "none" }
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "short",
+					"custom": {
+						"lineInterpolation": "smooth",
+						"showPoints": "never"
+					}
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "nodejs_active_requests_total{job=~\"$job\"}",
+					"legendFormat": "{{ job }}",
+					"refId": "A"
+				}
+			],
+			"description": "Number of active HTTP requests being processed"
+		},
+		{
+			"id": 7,
+			"title": "Postgres Overview",
+			"type": "stat",
+			"gridPos": { "h": 6, "w": 8, "x": 0, "y": 12 },
+			"options": {
+				"colorMode": "none",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "horizontal",
+				"reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+				"textMode": "auto"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "short",
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{ "color": "green", "value": null },
+							{ "color": "orange", "value": 50 },
+							{ "color": "red", "value": 100 }
+						]
+					}
+				},
+				"overrides": [
+					{
+						"matcher": { "id": "byName", "options": "Database Size" },
+						"properties": [{ "id": "unit", "value": "bytes" }]
+					}
+				]
+			},
+			"targets": [
+				{
+					"expr": "pg_stat_activity_count{datname=\"greenops_db\"}",
+					"legendFormat": "Active Connections",
+					"refId": "A"
+				},
+				{
+					"expr": "pg_database_size_bytes{datname=\"greenops_db\"}",
+					"legendFormat": "Database Size",
+					"refId": "B"
+				}
+			],
+			"description": "PostgreSQL active connections and database size"
+		},
+		{
+			"id": 8,
+			"title": "Scrape Duration",
+			"type": "table",
+			"gridPos": { "h": 6, "w": 16, "x": 8, "y": 12 },
+			"options": {
+				"sortBy": [{ "displayName": "Value", "desc": true }]
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"custom": {
+						"align": "auto",
+						"cellOptions": { "type": "auto" }
+					}
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "scrape_duration_seconds",
+					"legendFormat": "{{ job }}",
+					"format": "table",
+					"instant": true,
+					"refId": "A"
+				}
+			],
+			"transformations": [
+				{
+					"id": "organize",
+					"options": {
+						"excludeByName": { "__name__": true, "instance": true }
+					}
+				}
+			],
+			"description": "Latest Prometheus scrape duration per job"
+		}
+	],
+	"schemaVersion": 39,
+	"version": 1,
+	"links": []
+}
