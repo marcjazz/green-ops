@@ -1,7 +1,7 @@
 {
 	"title": "GreenOps - Service Overview",
-	"description": "Essential metrics for alerts-service, user-service, PostgreSQL, and Prometheus",
-	"tags": ["greenops", "nodejs", "postgres"],
+	"description": "Essential metrics for alerts-service, user-service, PostgreSQL, Keycloak, and Nginx",
+	"tags": ["greenops", "nodejs", "postgres", "keycloak", "nginx"],
 	"timezone": "browser",
 	"editable": false,
 	"refresh": "30s",
@@ -287,6 +287,146 @@
 				}
 			],
 			"description": "Latest Prometheus scrape duration per job"
+		},
+		{
+			"id": 9,
+			"title": "Nginx Connections",
+			"type": "stat",
+			"gridPos": { "h": 6, "w": 8, "x": 0, "y": 18 },
+			"options": {
+				"colorMode": "none",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "horizontal",
+				"reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+				"textMode": "auto"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "short",
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{ "color": "green", "value": null },
+							{ "color": "orange", "value": 100 },
+							{ "color": "red", "value": 500 }
+						]
+					}
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "nginx_connections_active{job=\"nginx\"}",
+					"legendFormat": "Active",
+					"refId": "A"
+				},
+				{
+					"expr": "nginx_connections_reading{job=\"nginx\"}",
+					"legendFormat": "Reading",
+					"refId": "B"
+				},
+				{
+					"expr": "nginx_connections_writing{job=\"nginx\"}",
+					"legendFormat": "Writing",
+					"refId": "C"
+				},
+				{
+					"expr": "nginx_connections_waiting{job=\"nginx\"}",
+					"legendFormat": "Waiting",
+					"refId": "D"
+				}
+			],
+			"description": "Current Nginx connection states"
+		},
+		{
+			"id": 10,
+			"title": "Nginx Request Rate",
+			"type": "timeseries",
+			"gridPos": { "h": 6, "w": 8, "x": 8, "y": 18 },
+			"options": {
+				"legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+				"tooltip": { "mode": "multi", "sort": "none" }
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps",
+					"custom": {
+						"lineInterpolation": "smooth",
+						"showPoints": "never"
+					}
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "rate(nginx_http_requests_total{job=\"nginx\"}[1m])",
+					"legendFormat": "Requests/s",
+					"refId": "A"
+				}
+			],
+			"description": "Nginx HTTP requests per second"
+		},
+		{
+			"id": 11,
+			"title": "Keycloak JVM Heap",
+			"type": "timeseries",
+			"gridPos": { "h": 6, "w": 8, "x": 16, "y": 18 },
+			"options": {
+				"legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+				"tooltip": { "mode": "multi", "sort": "none" }
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "bytes",
+					"custom": {
+						"lineInterpolation": "smooth",
+						"showPoints": "never"
+					}
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "jvm_memory_used_bytes{area=\"heap\", job=\"keycloak\"}",
+					"legendFormat": "Used",
+					"refId": "A"
+				},
+				{
+					"expr": "jvm_memory_max_bytes{area=\"heap\", job=\"keycloak\"}",
+					"legendFormat": "Max",
+					"refId": "B"
+				}
+			],
+			"description": "Keycloak JVM heap memory usage"
+		},
+		{
+			"id": 12,
+			"title": "Keycloak Requests",
+			"type": "timeseries",
+			"gridPos": { "h": 6, "w": 16, "x": 0, "y": 24 },
+			"options": {
+				"legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+				"tooltip": { "mode": "multi", "sort": "none" }
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps",
+					"custom": {
+						"lineInterpolation": "smooth",
+						"showPoints": "never"
+					}
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "rate(http_server_requests_seconds_count{job=\"keycloak\"}[1m])",
+					"legendFormat": "Requests/s",
+					"refId": "A"
+				}
+			],
+			"description": "Keycloak HTTP request rate"
 		}
 	],
 	"schemaVersion": 39,
